@@ -19,6 +19,6 @@ class Logger:
     def getTrades(self):
         return "\n".join(self.trades)
     
-    def save(self):
-        with open("logging.txt", "w") as file1:
+    def save(self, name = "logging.txt"):
+        with open(name, "w") as file1:
             file1.writelines(self.trades)

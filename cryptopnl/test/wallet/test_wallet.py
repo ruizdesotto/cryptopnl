@@ -10,14 +10,14 @@ def test_wallet_init():
     """
     Test a wallet instance is initialized
     inner variables wallet and amounts are default dicts (list and D("0"))
-    inner variable walletValue is a decimal 0
+    inner variable _walletCost is a decimal 0
     """
     test_wallet = wallet()
     assert type(test_wallet.wallet) is defaultdict
     assert test_wallet.wallet.default_factory is list
     assert type(test_wallet.amounts) is defaultdict
     assert test_wallet.amounts.default_factory() == D("0")
-    assert test_wallet.walletValue == D("0") 
+    assert test_wallet._walletCost == D("0") 
     
 def test_wallet_add():
     """
@@ -29,14 +29,14 @@ def test_wallet_add():
     test_wallet.add(crypto, amount, price, fee)
     assert crypto in test_wallet.wallet
     assert crypto in test_wallet.amounts
-    assert test_wallet.wallet[crypto][0]["vol"] == D(str(amount)) - D(str(fee))
-    assert test_wallet.wallet[crypto][0]["price"] == price 
+    assert test_wallet.wallet[crypto][0][wallet.VOL] == D(str(amount)) - D(str(fee))
+    assert test_wallet.wallet[crypto][0][wallet.PRICE] == price 
     assert test_wallet.amounts[crypto] == D(str(amount)) - D(str(fee))
 
     test_wallet.add(crypto, amount, price)
     assert len(test_wallet.wallet[crypto]) == 2
-    assert test_wallet.wallet[crypto][1]["vol"] == D(str(amount)) 
-    assert test_wallet.wallet[crypto][1]["price"] == price 
+    assert test_wallet.wallet[crypto][1][wallet.VOL] == D(str(amount)) 
+    assert test_wallet.wallet[crypto][1][wallet.PRICE] == price 
     assert test_wallet.amounts[crypto] == 2*D(str(amount)) - D(str(fee))
 
 def test_wallet_take():
@@ -53,14 +53,14 @@ def test_wallet_take():
     out = 7 
     initial_fiat_val = test_wallet.take(crypto, out)
     assert initial_fiat_val == D(str(out))*D(str(price))
-    assert test_wallet.wallet[crypto][0]["vol"] == D(str(amount)) - D(str(out))
+    assert test_wallet.wallet[crypto][0][wallet.VOL] == D(str(amount)) - D(str(out))
     assert test_wallet.amounts[crypto] == 2*D(str(amount)) - D(str(out))
 
     initial_fiat_val = test_wallet.take(crypto, out)
     assert initial_fiat_val == ((D(str(amount)) - D(str(out)))*D(str(price)) + 
                                 (2*D(str(out)) - D(str(amount)))*2*D(str(price)))
-    assert test_wallet.wallet[crypto][0]["vol"] == D("0") 
-    assert test_wallet.wallet[crypto][1]["vol"] == 2*D(str(amount)) - 2*D(str(out))
+    assert test_wallet.wallet[crypto][0][wallet.VOL] == D("0") 
+    assert test_wallet.wallet[crypto][1][wallet.VOL] == 2*D(str(amount)) - 2*D(str(out))
     assert test_wallet.amounts[crypto] == 2*D(str(amount)) - 2*D(str(out))
 
 def test_wallet_take_nocrypto():
@@ -97,7 +97,7 @@ def test_wallet_update_cost():
     add_cost = 5
     test_wallet.updateCost(add_cost)
     test_wallet.updateCost(add_cost)
-    assert test_wallet.walletValue == 2*D(str(add_cost))
+    assert test_wallet._walletCost == 2*D(str(add_cost))
 
 def test_wallet_set_cost():
     """
@@ -105,8 +105,8 @@ def test_wallet_set_cost():
     """
     test_wallet = wallet()
     new_cost = 5
-    test_wallet.setCost(2*new_cost)
-    test_wallet.setCost(new_cost)
-    assert test_wallet.walletValue == D(str(new_cost))
+    test_wallet.setWalletCost(2*new_cost)
+    test_wallet.setWalletCost(new_cost)
+    assert test_wallet._walletCost == D(str(new_cost))
 
-# TODO test wallet.getCurrentValue -> triggers an API
+# TODO test wallet.getCurrentWalletValue -> triggers an API

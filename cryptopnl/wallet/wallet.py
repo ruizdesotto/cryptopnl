@@ -2,13 +2,6 @@ from decimal import Decimal as D
 from collections import defaultdict
 from cryptopnl.utils.utils import dec 
 
-def rndFloor(num, p = 5):
-    """
-    TODO : define purpose
-    """
-    return dec(int(num*dec(10**p))/dec(10**p))
-
-# TODO define some variables like VOL or PRICE
 class wallet:
     """
     A class to represent a cryptowallet.
@@ -26,13 +19,16 @@ class wallet:
         Takes a ammount of crypto using FIFO and computes surplus 
     updateCost(cost)
         Updates the wallet's average cost
-    setCost(cost)
+    setWalletCost(cost)
         Sets average cost value
-    getCurrentValue(prices, time)
+    getCurrentWalletValue(prices, time)
         Gets the wallet's current value
-    getCost()
+    getWalletCost()
         Gets the wallet's current average cost value
     """
+
+    VOL = "vol"
+    PRICE = "price"
 
     def __init__(self):
         """
@@ -46,7 +42,7 @@ class wallet:
         self.amounts = defaultdict(lambda: D("0")) 
             
         # Current wallet value set to zero
-        self.walletValue = D("0")
+        self._walletCost = D("0")
         return
 
     def add(self, crypto, amount, price, fee = 0):
@@ -63,7 +59,7 @@ class wallet:
         amount = D(str(amount))
         price = D(str(price))
         fee = D(str(fee))
-        self.wallet[crypto].append({"vol": amount-fee, "price": price})
+        self.wallet[crypto].append({wallet.VOL: amount-fee, wallet.PRICE: price})
         self.amounts[crypto] += amount - fee 
         return
           
@@ -81,7 +77,7 @@ class wallet:
         Returns
         -------
         Decimal 
-            Initial FIAT (eur) value of withdrawn amount 
+            Initial FIAT cost (eur) value of withdrawn amount 
 
         Raises
         ------
@@ -95,24 +91,44 @@ class wallet:
             raise ValueError("ERROR - CRYPTO NOT FOUND IN WALLET")
 
         chunks = self.wallet[crypto]
-        initialFiat = 0
+        initialCost = 0
         self.amounts[crypto] -= vol
         for chunk in chunks:
             # Take all the chunk
-            if chunk["vol"] <= vol:
-                initialFiat += chunk["vol"]*chunk["price"]
-                vol -= chunk["vol"]
-                chunk["vol"] = D("0") 
+            if chunk[wallet.VOL] <= vol:
+                initialCost += chunk[wallet.VOL]*chunk[wallet.PRICE]
+                vol -= chunk[wallet.VOL]
+                chunk[wallet.VOL] = D("0") 
             # Reduce current chunk and break the loop
             else :
-                initialFiat += vol*chunk["price"]
-                chunk["vol"] -= vol
+                initialCost += vol*chunk[wallet.PRICE]
+                chunk[wallet.VOL] -= vol
                 vol = 0
                 break
         
         if vol > 0: 
             raise ValueError("Insufficient amount in the wallet")
-        return initialFiat
+        return initialCost
+
+    def getWalletCost(self):
+        """
+        Get wallet's cost 
+
+        Returns
+        -------
+        dec Wallet's cost 
+        """
+        return self._walletCost
+
+    def setWalletCost(self, cost):
+        """
+        Set current wallet's cost
+
+        Parameters
+        ----------
+        cost : dec New wallet's cost
+        """
+        self._walletCost = D(str(cost))
 
     def updateCost(self, cost):
         """
@@ -123,20 +139,9 @@ class wallet:
         cost : dec 
             Transaction cost
         """
-        self.walletValue += D(str(cost))
-
-    def setCost(self, cost):
-        """
-        Set current wallet's cost
-
-        Parameters
-        ----------
-        cost : dec 
-            New wallet's cost
-        """
-        self.walletValue = D(str(cost))
-
-    def getCurrentValue(self, prices, time):
+        self._walletCost += D(str(cost))
+        
+    def getCurrentWalletValue(self, time, prices):
         """
         Get wallet's current value
 
@@ -152,24 +157,14 @@ class wallet:
         dec 
             Wallet's current value
         """
-        # Todo - needs some tweaking
+        # TODO - needs some tweaking
         currentVal = dec(0)
         for crypto in self.amounts:
             price = dec(prices.getPrice(crypto, time))
             # With/Without Rounding
-            currentVal += rndFloor(self.amounts[crypto])*price
+            p = 5
+            rnd = dec(int(self.amounts[crypto]*dec(10**p))/dec(10**p))
+            currentVal += rnd*price
             #currentVal += (self.amounts[crypto])*price
         return currentVal 
 
-    def getCost(self):
-        """
-        Get wallet's cost 
-
-        Returns
-        -------
-        dec 
-            Wallet's cost 
-
-        # TODO remove method...
-        """
-        return self.walletValue

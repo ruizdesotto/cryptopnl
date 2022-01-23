@@ -26,7 +26,7 @@ class cumpCalculator:
         self.log = Logger()
 
         self.prices = prices(priceName, CRYPTO)
-        self.wallet = wallet(CRYPTO)
+        self.wallet = wallet()
 
         self.totalGains = {}
         for year in range(2017, 2022):
