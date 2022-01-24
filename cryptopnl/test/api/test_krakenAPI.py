@@ -1,5 +1,4 @@
 from datetime import datetime as dt
-from numpy import isin
 import pytest
 
 from cryptopnl.api.krakenAPI import krakenAPI
@@ -44,9 +43,6 @@ def test_getHistoryTrades():
         assert dt.fromtimestamp(items[2])
     assert isinstance(timestamp, str)
 
-def test_getHistoryTrades_sinceParam():
-    assert False
-
 def test_mock_getServerTime(mocker):
     """
     Assert the correct time is obtained
@@ -71,13 +67,10 @@ def test_mock_getHistoryTrades(mocker):
     items = data[0]
     assert isinstance(items, list)
     assert len(items) == 3
-    try:
-        float(items[0])
-        float(items[1])
-    except ValueError:
-        assert "string" == "number"
-    else:
-        assert dt.fromtimestamp(items[2])
+    assert float(items[0]) == float("30668.70000")
+    assert float(items[1]) == float("0.00455250")
+    assert isinstance(dt.fromtimestamp(items[2]), dt)
+    assert dt.fromtimestamp(items[2]) == dt.fromtimestamp(1642967070.7617)
     assert isinstance(timestamp, str)
 
 def test_getTickerAPI():
@@ -85,5 +78,7 @@ def test_getTickerAPI():
     with pytest.raises(NotImplementedError):
         krakenAPI.getTickerAPI()
 
+def test_mock_getHistoryTrades_sinceParam():
+    assert False
 
     
