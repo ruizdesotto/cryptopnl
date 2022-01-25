@@ -1,3 +1,4 @@
+from cmath import exp
 from datetime import datetime as dt
 import pytest
 
@@ -12,16 +13,46 @@ def test_api_domain():
     """Verify correct end point."""
     assert krakenAPI.API_DOMAIN == "https://api.kraken.com" 
 
-def test_mock__publicAPI(mocker):
+@pytest.mark.parametrize("input, output", 
+            [(None, ""), ({"a":"a", "b":"b"}, "a=a&b=b")])
+def test_mock__publicAPI(input, output, mocker):
     """
     Assert correct address is reach and json has correct keys
     """
-    expected_result = {krakenAPI.RESULT:"some reults", "error": "an error"}
-    api_mock = mocker.patch("urllib.request.urlopen.read", return_value=True)
-    api_mock_b = mocker.patch("urllib.request.urlopen.decode", return_value=True)
-    # TODO define magick mock !
-    assert False
+    method = "patatas"
+    expected_result = {krakenAPI.RESULT:"some results"}
+    
+    api_mock = mocker.MagicMock()
+    api_mock.read.return_value = api_mock 
+    api_mock.decode.return_value = expected_result 
+    api_mock.add_header.return_value = True
+    mocker.patch("json.loads", return_value=expected_result)
+    req_mock = mocker.patch("urllib.request.Request", return_value=api_mock)
+    mock_urlopen = mocker.patch("urllib.request.urlopen", return_value=api_mock)
 
+    assert krakenAPI._publicAPI(method, input) == expected_result[krakenAPI.RESULT]
+    mock_urlopen.assert_called_once()
+    req_mock.assert_called_once_with(krakenAPI.API_DOMAIN+krakenAPI.PUBLIC+method+"?"+output)
+
+def test_mock__publicAPI_errorQuery(mocker):
+    """
+    Assert correct address is reach and json has correct keys
+    """
+    method = "patatas"
+    expected_result = {"error":"an error"}
+    
+    api_mock = mocker.MagicMock()
+    api_mock.read.return_value = api_mock 
+    api_mock.decode.return_value = expected_result 
+    api_mock.add_header.return_value = True
+    mocker.patch("json.loads", return_value=expected_result)
+    req_mock = mocker.patch("urllib.request.Request", return_value=api_mock)
+    mock_urlopen = mocker.patch("urllib.request.urlopen", return_value=api_mock)
+
+    with pytest.raises(APIException):
+        _ = krakenAPI._publicAPI(method)
+        mock_urlopen.assert_called_once()
+        req_mock.assert_called_once_with(krakenAPI.API_DOMAIN+krakenAPI.PUBLIC+method+"?")
 
 def test_mock_getServerTime(mocker):
     """

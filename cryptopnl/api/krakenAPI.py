@@ -10,7 +10,7 @@ class krakenAPI(exchangeAPI):
     RESULT = "result"
     UNIXTIME = "unixtime"
 
-    def _publicAPI(method, params = None, since = None):
+    def _publicAPI(method, params = None):
         """
         Generic public API request.
 
@@ -18,7 +18,6 @@ class krakenAPI(exchangeAPI):
         :returns: JSON response
         :raises APIException: if there was a connexion error
         """
-
         if params is None: api_data = "" 
         else:
             api_data = "&".join([k + "=" + v for k,v in params.items()])
@@ -31,13 +30,8 @@ class krakenAPI(exchangeAPI):
             api_reply = api_reply.decode()
             api_reply = json.loads(api_reply)
             return api_reply[krakenAPI.RESULT]
-        except KeyError:
-            print("No results retrieved")
-            print(api_reply)
-            raise
-        except APIException as e: # Maybe not here or like here
-            print(f"API call failed {e}")
-            raise 
+        except KeyError as e:
+            raise APIException(e)
 
     def getServerTime():
         """
