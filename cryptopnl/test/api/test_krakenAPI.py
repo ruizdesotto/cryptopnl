@@ -5,13 +5,23 @@ from cryptopnl.api.exchangeAPI import APIException
 from cryptopnl.api.krakenAPI import krakenAPI
 
 # TODO test _publicAPI
-# Check in case of error
 
 MAX_WAIT_IN_SEC_ALLOWED = 3
 
 def test_api_domain():
     """Verify correct end point."""
     assert krakenAPI.API_DOMAIN == "https://api.kraken.com" 
+
+def test_mock__publicAPI(mocker):
+    """
+    Assert correct address is reach and json has correct keys
+    """
+    expected_result = {krakenAPI.RESULT:"some reults", "error": "an error"}
+    api_mock = mocker.patch("urllib.request.urlopen.read", return_value=True)
+    api_mock_b = mocker.patch("urllib.request.urlopen.decode", return_value=True)
+    # TODO define magick mock !
+    assert False
+
 
 def test_mock_getServerTime(mocker):
     """

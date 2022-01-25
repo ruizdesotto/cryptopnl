@@ -18,7 +18,6 @@ class krakenAPI(exchangeAPI):
         :returns: JSON response
         :raises APIException: if there was a connexion error
         """
-        # TODO:LOGGING add logging here
 
         if params is None: api_data = "" 
         else:
@@ -51,9 +50,7 @@ class krakenAPI(exchangeAPI):
         try:
             unix_time = response[krakenAPI.UNIXTIME]
             return dt.fromtimestamp(unix_time) 
-        except KeyError as e:
-            raise APIException(e)
-        except OSError as e:
+        except (TypeError, KeyError, OSError) as e:
             raise APIException(e)
         
 
@@ -76,9 +73,8 @@ class krakenAPI(exchangeAPI):
                 if isinstance(v, list): 
                     clean_data = [i[:3] for i in v]
                     return (clean_data, float(response["last"])/1e9)
-        except KeyError as e:
-            raise APIException()
-        
+        except (AttributeError, ValueError, KeyError) as e:
+            raise APIException(e)
 
     def getTickerAPI():
         """Get updated ticker information."""
