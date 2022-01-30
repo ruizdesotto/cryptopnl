@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from decimal import Decimal as D
 from cryptopnl.wallet.wallet import wallet
-from cryptopnl.price_api.prices import prices
 from cryptopnl.utils.Logger import Logger
 from cryptopnl.calc.balanceCheck import checkBalanceWithFees
 

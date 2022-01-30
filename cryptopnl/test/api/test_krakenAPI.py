@@ -36,7 +36,7 @@ def test_mock__publicAPI(input, output, mocker):
 
 def test_mock__publicAPI_errorQuery(mocker):
     """
-    Assert correct address is reach and json has correct keys
+    Assert error in the query is caught 
     """
     method = "patatas"
     expected_result = {"error":"an error"}

@@ -6,11 +6,6 @@ class wallet:
     """
     A class to represent a cryptowallet.
 
-    Attributes
-    ----------
-    cryptos : str[]
-        array of cryptocurrency names to be included
-
     Methods
     -------
     add(crypto, chunk)

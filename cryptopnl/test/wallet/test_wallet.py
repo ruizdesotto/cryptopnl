@@ -2,7 +2,6 @@ from collections import defaultdict
 from distutils.ccompiler import new_compiler
 import pytest
 
-# TODO Import context all in one
 from decimal import Decimal as D 
 from cryptopnl.wallet.wallet import wallet
 
