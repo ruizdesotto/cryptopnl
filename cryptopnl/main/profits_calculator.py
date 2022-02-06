@@ -1,5 +1,8 @@
+import os
+from cryptopnl.main.trades import Trades
+from cryptopnl.wallet.wallet import wallet
 
-class pnl_calculator:
+class profitsCalculator:
     """
     Profits N Losses Calculator.
     
@@ -27,9 +30,20 @@ class pnl_calculator:
         Detailed information over the profits and losses
     """
 
+    def __init__(self, trades_file, ledger_file = None):  
+        """ 
+        Initializes an instance with a Trades object and a Wallet
 
-    def __init__(self):
-        pass
+        Parameters
+        ----------
+        trades_file (str) : location of a file with the trades
+        ledger_file (str) . (optional) location of a file with the ledger 
+        """
+        if not os.path.exists(trades_file): raise FileNotFoundError
+        if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
+        self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
+        self._wallet = wallet()
+        return 
 
     def process_all_trades(self):
         pass

@@ -1,6 +1,5 @@
 from decimal import Decimal as D
 from collections import defaultdict
-from cryptopnl.utils.utils import dec 
 
 class wallet:
     """
