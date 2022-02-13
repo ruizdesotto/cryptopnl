@@ -52,6 +52,7 @@ class profitsCalculator:
         pass
 
     def fiat2crypto(self):
+         
         pass
 
     def crypto2fiat(self):

@@ -1,7 +1,21 @@
+import os
 import pytest
 from cryptopnl.main.profits_calculator import profitsCalculator
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
+
+@pytest.fixture
+def trades_fixture(request):
+    filename = request.module.__file__
+    test_dir, _ = os.path.split(filename)
+
+    if os.path.isdir(os.path.join(test_dir, "test_files")):
+        trades_file = os.path.join(test_dir, "test_files", "test_trades.csv")
+        if os.path.exists(trades_file):
+            return Trades(trades_file)
+    
+    raise FileNotFoundError("Test files not found")
+    
 
 def test_profitsCalculator_init(tmpdir, mocker):
     """
@@ -25,11 +39,16 @@ def test_profitsCalculator_init(tmpdir, mocker):
     assert type(profits_without_ledger._trades) == Trades
     return
 
-def test_fiat2crypto():
+#def test_process_all_trades():
+#    assert False
+
+
+def test_fiat2crypto(trades_fixture):
     """
     Asserts crypto has been bought and stored
     """
 
+    
     assert False
 
 
