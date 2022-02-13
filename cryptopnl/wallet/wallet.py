@@ -1,5 +1,6 @@
 from decimal import Decimal as D
 from collections import defaultdict
+from unicodedata import decimal
 
 class wallet:
     """
@@ -83,6 +84,7 @@ class wallet:
         """
         if crypto not in self.wallet:
             raise ValueError("ERROR - CRYPTO NOT FOUND IN WALLET")
+        if type(vol) != decimal: vol = D(str(vol))
 
         chunks = self.wallet[crypto]
         initialCost = 0
@@ -124,16 +126,16 @@ class wallet:
         """
         self._walletCost = D(str(cost))
 
-    def updateCost(self, cost):
+    def updateCost(self, cost, fee):
         """
         Update current wallet's cost with a new transaction
 
         Parameters
         ----------
-        cost : dec 
-            Transaction cost
+        cost : (float) transaction cost
+        fee : (float) transaction fee
         """
-        self._walletCost += D(str(cost))
+        self._walletCost += D(str(cost)) + D(str(fee))
         
     def getCurrentWalletValue(self, time, prices):
         """

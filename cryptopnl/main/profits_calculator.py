@@ -1,6 +1,8 @@
 import os
+from collections import defaultdict
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
+from decimal import Decimal as D
 
 class profitsCalculator:
     """
@@ -43,6 +45,7 @@ class profitsCalculator:
         if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
         self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
         self._wallet = wallet()
+        self.fifo_gains = defaultdict(list)
         return 
 
     def process_all_trades(self):
@@ -51,12 +54,43 @@ class profitsCalculator:
     def process_trade(self):
         pass
 
-    def fiat2crypto(self):
-         
+    def fiat2crypto(self, trade):
+        """
+        Digest a fiat -> crypto transaction
+        
+        It adds the crypto amount to the wallet and updated the cost
+        
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+        """
+        crypto = trade.pair[:-4] # Likely to bug
+        self._wallet.add(crypto, trade.vol, trade.price)
+        self._wallet.updateCost(trade.cost, trade.fee)
         pass
 
-    def crypto2fiat(self):
-        pass
+    def crypto2fiat(self, trade):
+        """
+        Digest a crypto -> fiat transaction
+        
+        It takes crypto from the wallet and updates the current cost and profit
+        FIFO and later on, average cost method
+        
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+
+        Returns
+        -------
+        profit: (boolean) True / False for profit / loss
+        """
+
+        crypto = trade.pair[:-4]
+        initial_cost = self._wallet.take(crypto = crypto, vol = trade.vol)
+        cash_in = D(str(trade.price)) * D(str(trade.vol)) - D(str(trade.fee))
+        profit = cash_in - initial_cost
+        self.fifo_gains[trade.time.year].append((trade.time, profit))
+        return profit > 0
 
     def crypto2crypto(self):
         pass
