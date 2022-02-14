@@ -2,3 +2,4 @@
 "aaaa","aaaa","XXBTZEUR","2018-09-01","buy","limit",4000.00000,400.00,0.0200,0.1,0.00000,"","aaaaaaaaaaaaa"
 "bbbb","bbbb","XETHXXBT","2018-09-05","buy","limit",0.050000,0.1000,0.000005,2.00000000,0.000000,"","bbbbbbbbbbbbb"
 "cccc","cccc","XXBTZEUR","2021-02-08","sell","market",30000.00000,600.00,1.40000,0.02000000,0.00000,"","ccccccccccccc"
+"dddd","dddd","XETHXXBT","2018-09-05","sell","limit",0.050000,0.1000,0.000005,2.00000000,0.000000,"","ddddddddddddd"

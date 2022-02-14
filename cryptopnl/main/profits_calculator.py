@@ -1,3 +1,4 @@
+from operator import eq
 import os
 from collections import defaultdict
 from cryptopnl.main.trades import Trades
@@ -92,8 +93,33 @@ class profitsCalculator:
         self.fifo_gains[trade.time.year].append((trade.time, profit))
         return profit > 0
 
-    def crypto2crypto(self):
-        pass
+    def crypto2crypto(self, trade):
+        """
+        Digest a crypto -> crypto transaction
+        
+        It takes crypto from the wallet and translates it into the other crypto 
+        TODO : fees and profits 
+        
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+        """
+        print("This is an annoying print to remind you to include fees and profits")
+
+        if trade.type == "buy":
+            crypto_bought = trade.pair[:4]
+            crypto_sold = trade.pair[4:]
+            sold_amount = trade.cost
+            bought_amount = trade.vol
+        else:
+            crypto_bought = trade.pair[4:]
+            crypto_sold = trade.pair[:4]
+            sold_amount = trade.vol
+            bought_amount = trade.cost
+
+        initial_cost_in_fiat = self._wallet.take(crypto_sold, sold_amount)
+        equivalent_price = D(str(initial_cost_in_fiat)) / D(str(bought_amount))
+        self._wallet.add(crypto_bought, bought_amount, equivalent_price)
 
     def pnl_summary(self):
         pass
