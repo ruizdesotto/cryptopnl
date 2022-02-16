@@ -75,7 +75,6 @@ def test_crypto2fiat(initial_price, expected_is_profit, profitsCalculator_fixtur
 
     initial_amount = 2*trade.vol 
     wallet.add(trade.pair[:-4], initial_amount, initial_price)
-    wallet.setWalletCost(initial_price)
 
     is_profit = profitsCalculator_fixture.crypto2fiat(trade)
     
@@ -102,10 +101,9 @@ def test_crypto2crypto_buy(profitsCalculator_fixture):
     sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
 
     # Wallet before the transaction
-    initial_amount = 2*D(str(trade.vol))*D(str(trade.price)) # double definition 
+    initial_amount = 2*D(str(trade.vol))*D(str(trade.price))  
     initial_price = D("10.0") 
     wallet.add(sold_crypto, initial_amount, initial_price)
-    wallet.setWalletCost(initial_price * initial_amount)
 
     profitsCalculator_fixture.crypto2crypto(trade)
     
@@ -113,3 +111,29 @@ def test_crypto2crypto_buy(profitsCalculator_fixture):
     assert wallet.wallet[sold_crypto][0][wallet.PRICE] == D(str(initial_price)) 
     assert wallet.wallet[bought_crypto][0][wallet.VOL] == D(str(trade.vol)) 
     assert wallet.wallet[bought_crypto][0][wallet.PRICE] == D(str(initial_price)) * D(str(trade.price))
+
+def test_crypto2crypto_sell(profitsCalculator_fixture):
+    """
+    Asserts crypto has been correctly moved from one place to the other
+    For the time being, no profit is calculated. Crypto is bought as original price of the selling crypto
+    WARNING : Fees are yet not included TODO
+    """
+
+    trade = profitsCalculator_fixture._trades._trades.iloc[3]
+    wallet = profitsCalculator_fixture._wallet
+
+    bought_crypto = trade.pair[:4] if trade.type == "buy" else trade.pair[4:]
+    sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
+
+    # Wallet before the transaction
+    initial_amount = 2*D(str(trade.vol))  
+    initial_price = D("10.0") 
+    wallet.add(sold_crypto, initial_amount, initial_price)
+    wallet.setWalletCost(initial_price * initial_amount)
+
+    profitsCalculator_fixture.crypto2crypto(trade)
+    
+    assert wallet.wallet[sold_crypto][0][wallet.VOL] == D(str(initial_amount)) - D(str(trade.vol))
+    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == D(str(initial_price)) 
+    assert wallet.wallet[bought_crypto][0][wallet.VOL] == D(str(trade.vol)) * D(str(trade.price))
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == D(str(initial_price)) / D(str(trade.price))
