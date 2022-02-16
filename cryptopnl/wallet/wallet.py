@@ -126,7 +126,7 @@ class wallet:
         """
         self._walletCost = D(str(cost))
 
-    def updateCost(self, cost, fee):
+    def updateCost(self, cost, fee = D("0")):
         """
         Update current wallet's cost with a new transaction
 
