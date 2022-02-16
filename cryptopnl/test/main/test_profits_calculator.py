@@ -137,3 +137,43 @@ def test_crypto2crypto_sell(profitsCalculator_fixture):
     assert wallet.wallet[sold_crypto][0][wallet.PRICE] == D(str(initial_price)) 
     assert wallet.wallet[bought_crypto][0][wallet.VOL] == D(str(trade.vol)) * D(str(trade.price))
     assert wallet.wallet[bought_crypto][0][wallet.PRICE] == D(str(initial_price)) / D(str(trade.price))
+    
+def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
+    """
+    Asserts process_trade function calls appropriate function with appropriate trade
+    """
+
+    mock_f2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.fiat2crypto", return_value=True)
+    mock_c2f = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2fiat", return_value=True)
+    mock_c2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2crypto", return_value=True)
+
+    t0 = profitsCalculator_fixture._trades._trades.iloc[0]
+    profitsCalculator_fixture.process_trade(t0)
+    mock_f2c.assert_called_once_with(t0)
+
+    t1 = profitsCalculator_fixture._trades._trades.iloc[1]
+    profitsCalculator_fixture.process_trade(t1)
+    mock_c2c.assert_called_once_with(t1)
+
+    t2 = profitsCalculator_fixture._trades._trades.iloc[2]
+    profitsCalculator_fixture.process_trade(t2)
+    mock_c2f.assert_called_once_with(t2)
+
+def test_profitsCalculator_process_all_trades(profitsCalculator_fixture, mocker):
+    """
+    Asserts all trades are processed  
+    """
+
+    mock_process = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.process_trade", return_value=True)
+
+    profitsCalculator_fixture.process_all_trades()
+    t0 = profitsCalculator_fixture._trades._trades.iloc[0]
+    t1 = profitsCalculator_fixture._trades._trades.iloc[1]
+    t2 = profitsCalculator_fixture._trades._trades.iloc[2]
+    t3 = profitsCalculator_fixture._trades._trades.iloc[3]
+
+    assert mock_process.call_count == 4
+    mock_process.called_with(mocker.call(mocker.ANY, t0))
+    mock_process.called_with(mocker.call(mocker.ANY, t1))
+    mock_process.called_with(mocker.call(mocker.ANY, t2))
+    mock_process.called_with(mocker.call(mocker.ANY, t3))

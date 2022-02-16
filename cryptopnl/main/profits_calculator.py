@@ -50,10 +50,33 @@ class profitsCalculator:
         return 
 
     def process_all_trades(self):
-        pass
+        """
+        Iterates over all trades
 
-    def process_trade(self):
-        pass
+        _trades is iterable
+        """
+        for trade in self._trades:
+            self.process_trade(trade)
+        return 
+
+    def process_trade(self, trade):
+        """
+        Checks what type of trades it to use appropriate function 
+        
+        TODO : add ledger as an option
+        TODO : Warning does not check a trade falls within one of the three categories
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+        """
+
+        if trade.pair.endswith("EUR") and trade.type == "buy":
+            self.fiat2crypto(trade)
+        elif trade.pair.endswith("EUR") and trade.type == "sell":
+            self.crypto2fiat(trade)
+        else:
+            self.crypto2crypto(trade)
+        return 
 
     def fiat2crypto(self, trade):
         """
