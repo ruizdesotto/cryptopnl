@@ -1,7 +1,10 @@
-from cryptopnl.calc.cump import doCumpCalculation
+import sys
+from cryptopnl.main.profits_calculator import profitsCalculator 
+
+def main(trades_file, ledger_file = None):
+    return profitsCalculator(trades_file=trades_file, ledger_file=ledger_file).go()
 
 if __name__ == "__main__":
-    #sys.exit(sys.args) or smth like that
-    doCumpCalculation(".env/ledgers.csv", 
-                      ".env/trades.csv", 
-                      ".env/prices4cump.json")
+    sys.exit(
+        main(*sys.argv[1:])
+    )

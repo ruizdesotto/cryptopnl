@@ -180,7 +180,7 @@ def test_profitsCalculator_process_all_trades(profitsCalculator_fixture, mocker)
     mock_process.called_with(mocker.call(mocker.ANY, t2))
     mock_process.called_with(mocker.call(mocker.ANY, t3))
 
-def test_pnl_summary(profitsCalculator_fixture, capsys):
+def test_profitsCalculator_pnl_summary(profitsCalculator_fixture, capsys):
     """ Assert it returns summay info and prints it"""
 
     timestamp = dt.timestamp(dt.now())
@@ -195,3 +195,15 @@ def test_pnl_summary(profitsCalculator_fixture, capsys):
     capture = capsys.readouterr()
     assert pnl == {"2020": 3.0, "2021": 30.0}
     assert re.match('2020(.*)3.0(\n)*(.*)2021(.*)30.0', capture.out)
+
+def test_profitsCalculator_go(profitsCalculator_fixture, mocker):
+    """
+    Assert the functions are called
+    """
+
+    mock_process = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.process_all_trades", return_value=True)
+    mock_summary = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.pnl_summary", return_value=True)
+
+    profitsCalculator_fixture.go()
+    mock_process.assert_called_once_with()
+    mock_summary.assert_called_once_with()

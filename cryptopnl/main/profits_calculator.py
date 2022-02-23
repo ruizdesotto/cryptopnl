@@ -145,8 +145,17 @@ class profitsCalculator:
         self._wallet.add(crypto_bought, bought_amount, equivalent_price)
 
     def pnl_summary(self):
+        """
+        Calculate a summary of all the profits and print it
+
+        Return a simplified dictionary 
+        """
         summary = {year: sum(p for (_, p) in profits) 
                             for (year, profits) in self.fifo_gains.items()} 
         print("\n".join(f"{year}: {profit}" for year, profit in summary.items()))
         return summary
         
+    def go(self):
+        self.process_all_trades()
+        self.pnl_summary()
+        return 0
