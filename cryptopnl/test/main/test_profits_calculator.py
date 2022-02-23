@@ -1,6 +1,8 @@
 from decimal import Decimal as D
+from datetime import datetime as dt
 import os
 import pytest
+import re
 from collections import defaultdict
 from cryptopnl.main.profits_calculator import profitsCalculator
 from cryptopnl.main.trades import Trades
@@ -177,3 +179,19 @@ def test_profitsCalculator_process_all_trades(profitsCalculator_fixture, mocker)
     mock_process.called_with(mocker.call(mocker.ANY, t1))
     mock_process.called_with(mocker.call(mocker.ANY, t2))
     mock_process.called_with(mocker.call(mocker.ANY, t3))
+
+def test_pnl_summary(profitsCalculator_fixture, capsys):
+    """ Assert it returns summay info and prints it"""
+
+    timestamp = dt.timestamp(dt.now())
+    all_gains = {
+        "2020": [(timestamp, 1.0), (timestamp, 2.0)], 
+        "2021": [(timestamp, 10.0), (timestamp, 20.0)],
+    }
+    profitsCalculator_fixture.fifo_gains = all_gains
+
+    pnl = profitsCalculator_fixture.pnl_summary()
+
+    capture = capsys.readouterr()
+    assert pnl == {"2020": 3.0, "2021": 30.0}
+    assert re.match('2020(.*)3.0(\n)*(.*)2021(.*)30.0', capture.out)

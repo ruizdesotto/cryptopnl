@@ -91,7 +91,7 @@ class profitsCalculator:
         crypto = trade.pair[:-4] # Likely to bug
         self._wallet.add(crypto, trade.vol, trade.price)
         self._wallet.updateCost(trade.cost, trade.fee)
-        pass
+        return 
 
     def crypto2fiat(self, trade):
         """
@@ -145,5 +145,8 @@ class profitsCalculator:
         self._wallet.add(crypto_bought, bought_amount, equivalent_price)
 
     def pnl_summary(self):
-        pass
+        summary = {year: sum(p for (_, p) in profits) 
+                            for (year, profits) in self.fifo_gains.items()} 
+        print("\n".join(f"{year}: {profit}" for year, profit in summary.items()))
+        return summary
         
