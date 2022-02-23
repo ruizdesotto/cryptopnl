@@ -55,7 +55,7 @@ class profitsCalculator:
 
         _trades is iterable
         """
-        for trade in self._trades:
+        for _, trade in self._trades:
             self.process_trade(trade)
         return 
 

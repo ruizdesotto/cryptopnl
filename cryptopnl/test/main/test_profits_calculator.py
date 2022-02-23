@@ -175,10 +175,11 @@ def test_profitsCalculator_process_all_trades(profitsCalculator_fixture, mocker)
     t3 = profitsCalculator_fixture._trades._trades.iloc[3]
 
     assert mock_process.call_count == 4
-    mock_process.called_with(mocker.call(mocker.ANY, t0))
-    mock_process.called_with(mocker.call(mocker.ANY, t1))
-    mock_process.called_with(mocker.call(mocker.ANY, t2))
-    mock_process.called_with(mocker.call(mocker.ANY, t3))
+    assert str(mocker.call(t0)) == str(mock_process.call_args_list[0])
+    assert str(mocker.call(t1)) == str(mock_process.call_args_list[1])
+    assert str(mocker.call(t2)) == str(mock_process.call_args_list[2])
+    assert str(mocker.call(t3)) == str(mock_process.call_args_list[3])
+
 
 def test_profitsCalculator_pnl_summary(profitsCalculator_fixture, capsys):
     """ Assert it returns summay info and prints it"""
