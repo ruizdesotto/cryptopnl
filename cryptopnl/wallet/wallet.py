@@ -22,6 +22,7 @@ class wallet:
         Gets the wallet's current average cost value
     """
 
+    COST = "cost"
     VOL = "vol"
     PRICE = "price"
 
@@ -40,7 +41,7 @@ class wallet:
         self._walletCost = D("0")
         return
 
-    def add(self, crypto, amount, price, fee = 0):
+    def add(self, crypto:str, amount, price, fee = 0) -> None:
         """
         Adds an amount of crypto
 
@@ -49,13 +50,18 @@ class wallet:
         crypto (str) : crypto-currency name
         amount (float)
         price (float): price of crypto with respect to fiat (eur)
-        fee (float): fee of transaction (in crypto)
+        fee (float): fee of transaction (in fiat)
         """
         amount = D(str(amount))
         price = D(str(price))
         fee = D(str(fee))
-        self.wallet[crypto].append({wallet.VOL: amount-fee, wallet.PRICE: price})
-        self.amounts[crypto] += amount - fee 
+        chunk = {
+            wallet.COST: price*amount + fee,
+            wallet.VOL: amount, 
+            wallet.PRICE: price, 
+            }
+        self.wallet[crypto].append(chunk)
+        self.amounts[crypto] += amount   # TODO do it elsewhere
         return
           
     def take(self, crypto, vol):
@@ -92,13 +98,17 @@ class wallet:
         for chunk in chunks:
             # Take all the chunk
             if chunk[wallet.VOL] <= vol:
-                initialCost += chunk[wallet.VOL]*chunk[wallet.PRICE]
+                initialCost += chunk[wallet.COST]
                 vol -= chunk[wallet.VOL]
                 chunk[wallet.VOL] = D("0") 
+                chunk[wallet.COST] = D("0") 
             # Reduce current chunk and break the loop
             else :
-                initialCost += vol*chunk[wallet.PRICE]
+                vol_fraction = vol  / chunk[wallet.VOL]
+                extra_cost = chunk[wallet.COST] * vol_fraction 
                 chunk[wallet.VOL] -= vol
+                chunk[wallet.COST] -= extra_cost 
+                initialCost += extra_cost
                 vol = 0
                 break
         
