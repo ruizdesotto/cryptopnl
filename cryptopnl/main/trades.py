@@ -1,6 +1,6 @@
 import pandas as pd
 import collections
-from decimal import Decimal as D
+from decimal import Decimal 
 
 class Trades:
     """
@@ -60,12 +60,12 @@ class Trades:
         """
         if self._ledger is None: raise ValueError("Theres is no ledger loaded.")
 
-        ledger_status = collections.defaultdict(lambda: D("0"))
-        ledger_calculus = collections.defaultdict(lambda: D("0"))
+        ledger_status = collections.defaultdict(lambda: Decimal("0"))
+        ledger_calculus = collections.defaultdict(lambda: Decimal("0"))
         for _, row in self._ledger.iterrows():
             if type(row[Trades.TXID_COL]) == str and row[Trades.TXID_COL]:
-                ledger_calculus[Trades.ASSET_COL] += D(str(row[Trades.AMOUNT_COL])) - D(str(row[Trades.FEE_COL]))
-                ledger_status[Trades.ASSET_COL] = D(str(row[Trades.BALANCE_COL]))
+                ledger_calculus[Trades.ASSET_COL] += row[Trades.AMOUNT_COL] - row[Trades.FEE_COL]
+                ledger_status[Trades.ASSET_COL] = row[Trades.BALANCE_COL]
 
         for asset in ledger_status:
             if ledger_status[asset] != ledger_calculus[asset]: return False
@@ -83,4 +83,7 @@ class Trades:
         """
         df = pd.read_csv(file)
         df[Trades.TIME_COL] = pd.to_datetime(df[Trades.TIME_COL])
+        for c in (Trades.AMOUNT_COL, Trades.FEE_COL, Trades.COST_COL, Trades.PRICE_COL, Trades.VOL_COL, Trades.AMOUNT_COL):
+            try: df[c] = df[c].apply(str).apply(Decimal)
+            except: pass
         return df

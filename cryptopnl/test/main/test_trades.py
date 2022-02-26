@@ -1,4 +1,4 @@
-from multiprocessing.sharedctypes import Value
+from decimal import Decimal as D
 import pandas as pd
 from datetime import datetime as dt
 import pytest
@@ -52,16 +52,16 @@ def test_trades_iter(mocker):
 @pytest.mark.parametrize("data_input, check", 
     ([
         (pd.DataFrame([
-            ["", "NAME", 1.0, 0.1, 0],
-            ["TXID_0", "NAME", 1.0, 0.1, 0.9],
-            ["TXID_1", "NAME", 1.0, 0.4, 1.5]
+            ["", "NAME", D(str(1.0)), D(str(0.1)), D(str(0))],
+            ["TXID_0", "NAME", D(str(1.0)), D(str(0.1)), D(str(0.9))],
+            ["TXID_1", "NAME", D(str(1.0)), D(str(0.4)), D(str(1.5))]
              ], 
              columns=[Trades.TXID_COL, Trades.ASSET_COL, Trades.AMOUNT_COL, Trades.FEE_COL, Trades.BALANCE_COL]),
         True), 
         (pd.DataFrame([
-            ["", "NAME", 1.0, 0.1, 0],
-            ["TXID_0", "NAME", 1.0, 0.1, 0.9],
-            ["TXID_1", "NAME", 1.0, 0.4, 1.0]
+            ["", "NAME", D(str(1.0)), D(str(0.1)), D(str(0))],
+            ["TXID_0", "NAME", D(str(1.0)), D(str(0.1)), D(str(0.9))],
+            ["TXID_1", "NAME", D(str(1.0)), D(str(0.4)), D(str(1.0))]
              ], 
              columns=[Trades.TXID_COL, Trades.ASSET_COL, Trades.AMOUNT_COL, Trades.FEE_COL, Trades.BALANCE_COL]),
         False), 

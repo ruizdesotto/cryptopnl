@@ -1,6 +1,5 @@
-from decimal import Decimal as D
+from decimal import Decimal 
 from collections import defaultdict
-from unicodedata import decimal
 
 class wallet:
     """
@@ -35,13 +34,13 @@ class wallet:
         self.wallet = defaultdict(list) 
 
         # Dict containing the total amounts of each crypto
-        self.amounts = defaultdict(lambda: D("0")) 
+        self.amounts = defaultdict(Decimal) 
             
         # Current wallet value set to zero
-        self._walletCost = D("0")
+        self._walletCost = Decimal()
         return
 
-    def add(self, crypto:str, amount, price, fee = 0) -> None:
+    def add(self, crypto:str, amount:Decimal, price:Decimal, fee:Decimal = Decimal()) -> None:
         """
         Adds an amount of crypto
 
@@ -52,9 +51,7 @@ class wallet:
         price (float): price of crypto with respect to fiat (eur)
         fee (float): fee of transaction (in fiat)
         """
-        amount = D(str(amount))
-        price = D(str(price))
-        fee = D(str(fee))
+
         chunk = {
             wallet.COST: price*amount + fee,
             wallet.VOL: amount, 
@@ -64,7 +61,7 @@ class wallet:
         self.amounts[crypto] += amount   # TODO do it elsewhere
         return
           
-    def take(self, crypto, vol):
+    def take(self, crypto:str, vol:Decimal):
         """
         Takes an amount of crypto following the FIFO method 
 
@@ -90,7 +87,6 @@ class wallet:
         """
         if crypto not in self.wallet:
             raise ValueError("ERROR - CRYPTO NOT FOUND IN WALLET")
-        if type(vol) != decimal: vol = D(str(vol))
 
         chunks = self.wallet[crypto]
         initialCost = 0
@@ -100,8 +96,8 @@ class wallet:
             if chunk[wallet.VOL] <= vol:
                 initialCost += chunk[wallet.COST]
                 vol -= chunk[wallet.VOL]
-                chunk[wallet.VOL] = D("0") 
-                chunk[wallet.COST] = D("0") 
+                chunk[wallet.VOL] = Decimal() 
+                chunk[wallet.COST] = Decimal() 
             # Reduce current chunk and break the loop
             else :
                 vol_fraction = vol  / chunk[wallet.VOL]
@@ -126,7 +122,7 @@ class wallet:
         """
         return self._walletCost
 
-    def setWalletCost(self, cost):
+    def setWalletCost(self, cost:Decimal):
         """
         Set current wallet's cost
 
@@ -134,9 +130,9 @@ class wallet:
         ----------
         cost : dec New wallet's cost
         """
-        self._walletCost = D(str(cost))
+        self._walletCost = cost 
 
-    def updateCost(self, cost, fee = D("0")):
+    def updateCost(self, cost:Decimal, fee:Decimal = Decimal()):
         """
         Update current wallet's cost with a new transaction
 
@@ -145,7 +141,7 @@ class wallet:
         cost : (float) transaction cost
         fee : (float) transaction fee
         """
-        self._walletCost += D(str(cost)) + D(str(fee))
+        self._walletCost += cost + fee 
         
     def getCurrentWalletValue(self, time, prices):
         """
@@ -164,12 +160,12 @@ class wallet:
             Wallet's current value
         """
         # TODO - needs some tweaking
-        currentVal = dec(0)
+        currentVal = Decimal 
         for crypto in self.amounts:
-            price = dec(prices.getPrice(crypto, time))
+            price = Decimal(prices.getPrice(crypto, time))
             # With/Without Rounding
             p = 5
-            rnd = dec(int(self.amounts[crypto]*dec(10**p))/dec(10**p))
+            rnd = Decimal(int(self.amounts[crypto]*Decimal(10**p))/Decimal(10**p))
             currentVal += rnd*price
             #currentVal += (self.amounts[crypto])*price
         return currentVal 

@@ -46,10 +46,6 @@ def test_profitsCalculator_init(tmpdir, mocker):
     assert type(profits_without_ledger._trades) == Trades
     return
 
-#def test_process_all_trades():
-#    assert False
-
-
 def test_fiat2crypto(profitsCalculator_fixture):
     """
     Asserts crypto has been bought, stored and cost is updated 
@@ -62,11 +58,11 @@ def test_fiat2crypto(profitsCalculator_fixture):
     wallet.setWalletCost(initial_cost)
     profitsCalculator_fixture.fiat2crypto(trade)
 
-    assert wallet._walletCost == D(str(initial_cost)) + D(str(trade.cost)) + D(str(trade.fee))
-    assert wallet.wallet[trade.pair[:-4]][0][wallet.VOL] == D(str(trade.vol))
-    assert wallet.wallet[trade.pair[:-4]][0][wallet.PRICE] == D(str(trade.price))
+    assert wallet._walletCost == initial_cost + trade.cost + trade.fee
+    assert wallet.wallet[trade.pair[:-4]][0][wallet.VOL] == trade.vol
+    assert wallet.wallet[trade.pair[:-4]][0][wallet.PRICE] == trade.price
 
-@pytest.mark.parametrize("initial_price, expected_is_profit", [(10.0, True), (60000, False)])
+@pytest.mark.parametrize("initial_price, expected_is_profit", [(D(10), True), (D(60000), False)])
 def test_crypto2fiat(initial_price, expected_is_profit, profitsCalculator_fixture):
     """
     Asserts correct profit is calculated. Need to prefill the wallet
@@ -80,14 +76,14 @@ def test_crypto2fiat(initial_price, expected_is_profit, profitsCalculator_fixtur
 
     is_profit = profitsCalculator_fixture.crypto2fiat(trade)
     
-    cash_in = D(str(trade.price)) * D(str(trade.vol)) - D(str(trade.fee))
-    initial_cost = D(str(initial_price)) * D(str(trade.vol))
+    cash_in = trade.price * trade.vol - trade.fee
+    initial_cost = initial_price * trade.vol
     profit = cash_in - initial_cost
 
     assert is_profit == expected_is_profit 
     assert profitsCalculator_fixture.fifo_gains[trade.time.year][0][1] == profit
-    assert wallet.wallet[trade.pair[:-4]][0][wallet.VOL] == D(str(initial_amount)) - D(str(trade.vol))
-    assert wallet.wallet[trade.pair[:-4]][0][wallet.PRICE] == D(str(initial_price)) 
+    assert wallet.wallet[trade.pair[:-4]][0][wallet.VOL] == initial_amount - trade.vol
+    assert wallet.wallet[trade.pair[:-4]][0][wallet.PRICE] == initial_price 
 
 def test_crypto2crypto_buy(profitsCalculator_fixture):
     """
@@ -103,16 +99,16 @@ def test_crypto2crypto_buy(profitsCalculator_fixture):
     sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
 
     # Wallet before the transaction
-    initial_amount = 2*D(str(trade.vol))*D(str(trade.price))  
-    initial_price = D("10.0") 
+    initial_amount = 2*trade.vol*trade.price  
+    initial_price = D(10) 
     wallet.add(sold_crypto, initial_amount, initial_price)
 
     profitsCalculator_fixture.crypto2crypto(trade)
     
-    assert wallet.wallet[sold_crypto][0][wallet.VOL] == D(str(initial_amount)) - D(str(trade.vol))*D(str(trade.price))
-    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == D(str(initial_price)) 
-    assert wallet.wallet[bought_crypto][0][wallet.VOL] == D(str(trade.vol)) 
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == D(str(initial_price)) * D(str(trade.price))
+    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol*trade.price
+    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
+    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol 
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.price
 
 def test_crypto2crypto_sell(profitsCalculator_fixture):
     """
@@ -128,17 +124,17 @@ def test_crypto2crypto_sell(profitsCalculator_fixture):
     sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
 
     # Wallet before the transaction
-    initial_amount = 2*D(str(trade.vol))  
-    initial_price = D("10.0") 
+    initial_amount = 2*trade.vol  
+    initial_price = D(10) 
     wallet.add(sold_crypto, initial_amount, initial_price)
     wallet.setWalletCost(initial_price * initial_amount)
 
     profitsCalculator_fixture.crypto2crypto(trade)
     
-    assert wallet.wallet[sold_crypto][0][wallet.VOL] == D(str(initial_amount)) - D(str(trade.vol))
-    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == D(str(initial_price)) 
-    assert wallet.wallet[bought_crypto][0][wallet.VOL] == D(str(trade.vol)) * D(str(trade.price))
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == D(str(initial_price)) / D(str(trade.price))
+    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol
+    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
+    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol * trade.price
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price / trade.price
     
 def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     """

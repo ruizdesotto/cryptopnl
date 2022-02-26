@@ -53,16 +53,16 @@ def test_wallet_take_from_one_chunk(test_wallet):
     """
     
     crypto = "BTC"
-    amount, price, fee = 10, 5000, 1
+    amount, price, fee = D(10), D(5000), D(1)
     test_wallet.add(crypto, amount, price, fee)
     test_wallet.add(crypto, amount, 2*price, fee) # Second transcation was more expensive
 
-    out = 7 
+    out = D(7)
     initial_fiat_val = test_wallet.take(crypto, out)
-    assert initial_fiat_val == D(str(out))*D(str(price)) + D(str(out))/D(str(amount))*D(str(fee))
-    assert test_wallet.wallet[crypto][0][wallet.COST] == (D(str(1)) - D(str(out))/D(str(amount)))*(D(str(amount))*D(str(price)) + D(str(fee)))
-    assert test_wallet.wallet[crypto][0][wallet.VOL] == D(str(amount)) - D(str(out))
-    assert test_wallet.amounts[crypto] == 2*D(str(amount)) - D(str(out))
+    assert initial_fiat_val == out*price + out/amount*fee
+    assert test_wallet.wallet[crypto][0][wallet.COST] == (D(1) - out/amount)*(amount*price + fee)
+    assert test_wallet.wallet[crypto][0][wallet.VOL] == amount - out 
+    assert test_wallet.amounts[crypto] == 2*amount - out
 
 def test_wallet_take_from_two_chunks(test_wallet):
     """
@@ -70,19 +70,19 @@ def test_wallet_take_from_two_chunks(test_wallet):
     """
     
     crypto = "BTC"
-    amount, price, fee = 10, 5000, 1
+    amount, price, fee = D(10), D(5000), D(1)
     test_wallet.add(crypto, amount, price, fee)
     test_wallet.add(crypto, amount, 2*price, fee) # Second transcation was more expensive
 
-    out = 14 
+    out = D(14)
     initial_fiat_val = test_wallet.take(crypto, out)
-    assert initial_fiat_val == ((D(str(amount))*D(str(price)) + D(str(fee))) + 
-                                (D(str(out)) - D(str(amount)))*2*D(str(price)) + (D(str(out)) - D(str(amount)))/D(str(amount))*D(str(fee)))
-    assert test_wallet.wallet[crypto][0][wallet.COST] == D("0") 
-    assert test_wallet.wallet[crypto][0][wallet.VOL] == D("0") 
-    assert test_wallet.wallet[crypto][1][wallet.COST] == (D(str(1)) - (D(str(out)) - D(str(amount)))/D(str(amount)))*(D(str(amount))*2*D(str(price)) + D(str(fee)))
-    assert test_wallet.wallet[crypto][1][wallet.VOL] == 2*D(str(amount)) - D(str(out))
-    assert test_wallet.amounts[crypto] == 2*D(str(amount)) - D(str(out))
+    assert initial_fiat_val == (amount*price + fee + 
+                                (out - amount)*2*price + (out - amount)/amount*fee)
+    assert test_wallet.wallet[crypto][0][wallet.COST] == D() 
+    assert test_wallet.wallet[crypto][0][wallet.VOL] == D() 
+    assert test_wallet.wallet[crypto][1][wallet.COST] == (D(1) - (out - amount)/amount)*(amount*2*price + fee)
+    assert test_wallet.wallet[crypto][1][wallet.VOL] == 2*amount - out
+    assert test_wallet.amounts[crypto] == 2*amount - out
 
 def test_wallet_take_nocrypto():
     """
@@ -91,7 +91,7 @@ def test_wallet_take_nocrypto():
     """
     test_wallet = wallet()
     crypto = "BTC"
-    amount, price, fee = 10, 5000, 1
+    amount = D(10)
     with pytest.raises(ValueError):
         test_wallet.take(crypto, amount)
 
@@ -102,7 +102,7 @@ def test_wallet_take_more_than_available():
     """
     test_wallet = wallet() 
     crypto = "BTC"
-    amount, price, fee = 10, 5000, 1
+    amount, price, fee = D(10), D(5000), D(1)
     test_wallet.add(crypto, amount+fee, price, fee)
     test_wallet.add(crypto, amount+fee, 2*price, fee) # 2nd is more expensive
 
@@ -115,19 +115,19 @@ def test_wallet_update_cost():
     Updates wallets value (or initial cost)
     """
     test_wallet = wallet()
-    add_cost = 5
+    add_cost = D(5)
     test_wallet.updateCost(add_cost)
     test_wallet.updateCost(add_cost)
-    assert test_wallet._walletCost == 2*D(str(add_cost))
+    assert test_wallet._walletCost == 2*add_cost
 
 def test_wallet_set_cost():
     """
     Updates wallets value (or initial cost)
     """
     test_wallet = wallet()
-    new_cost = 5
+    new_cost = D(5)
     test_wallet.setWalletCost(2*new_cost)
     test_wallet.setWalletCost(new_cost)
-    assert test_wallet._walletCost == D(str(new_cost))
+    assert test_wallet._walletCost == new_cost
 
 # TODO test wallet.getCurrentWalletValue -> triggers an API
