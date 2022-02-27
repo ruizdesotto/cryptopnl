@@ -1,21 +1,21 @@
-from operator import eq
 import os
 from collections import defaultdict
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 from decimal import Decimal as D
+import pandas as pd
 
 class profitsCalculator:
     """
     Profits N Losses Calculator.
     
-    It loads a Trades object and a Wallet object to track the operations.
+    Loads a Trades object and a Wallet object to track the operations.
     
     Attributes:
     ----------
     :param _trades: Trade instance with all trades information (optional ledger)
     :param _wallet: wallet instance to track all cryptocurrency
-    :param gains: pandas dataframe tracking current profits or losses
+    TODO :param gains: pandas dataframe tracking current profits or losses
 
     Methods:
     --------
@@ -31,11 +31,13 @@ class profitsCalculator:
         Trade involving the exchange of two cryptocurrencies
     pnl_summary()
         Detailed information over the profits and losses
+    go()
+        Process and generates a summary of earning
     """
 
-    def __init__(self, trades_file, ledger_file = None):  
+    def __init__(self, trades_file:str, ledger_file:str = None) -> None:  
         """ 
-        Initializes an instance with a Trades object and a Wallet
+        Initialize an instance with a Trades object and a Wallet
 
         Parameters
         ----------
@@ -44,24 +46,21 @@ class profitsCalculator:
         """
         if not os.path.exists(trades_file): raise FileNotFoundError
         if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
+
         self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
         self._wallet = wallet()
         self.fifo_gains = defaultdict(list)
         return 
 
-    def process_all_trades(self):
-        """
-        Iterates over all trades
-
-        _trades is iterable
-        """
+    def process_all_trades(self) -> None:
+        """ Iterate over all trades. """
         for _, trade in self._trades:
             self.process_trade(trade)
         return 
 
-    def process_trade(self, trade):
+    def process_trade(self, trade: pd.Series) -> None:
         """
-        Checks what type of trades it to use appropriate function 
+        Check type of trade 
         
         TODO : add ledger as an option
         TODO : Warning does not check a trade falls within one of the three categories
@@ -78,7 +77,7 @@ class profitsCalculator:
             self.crypto2crypto(trade)
         return 
 
-    def fiat2crypto(self, trade):
+    def fiat2crypto(self, trade: pd.Series) -> None:
         """
         Digest a fiat -> crypto transaction
         
@@ -89,11 +88,11 @@ class profitsCalculator:
         trade: (pandas.dataFrame.row) 
         """
         crypto = trade.pair[:-4] # Likely to bug
-        self._wallet.add(crypto, trade.vol, trade.price)
-        self._wallet.updateCost(trade.cost, trade.fee)
+        self._wallet.add(crypto, amount = trade.vol, price = trade.price, fee = trade.fee)
+        self._wallet.updateCost(cost = trade.cost, fee = trade.fee) # TODO redondant
         return 
 
-    def crypto2fiat(self, trade):
+    def crypto2fiat(self, trade: pd.Series) -> None:
         """
         Digest a crypto -> fiat transaction
         
@@ -107,16 +106,17 @@ class profitsCalculator:
         Returns
         -------
         profit: (boolean) True / False for profit / loss
+        # TODO : if ledger fees can be in both sides (in EUR and in crypto)
         """
-
         crypto = trade.pair[:-4]
         initial_cost = self._wallet.take(crypto = crypto, vol = trade.vol)
-        cash_in = D(str(trade.price)) * D(str(trade.vol)) - D(str(trade.fee))
+        #cash_in = trade.price * trade.vol - trade.fee # TODO redondant cost
+        cash_in = trade.cost - trade.fee
         profit = cash_in - initial_cost
         self.fifo_gains[trade.time.year].append((trade.time, profit))
         return profit > 0
 
-    def crypto2crypto(self, trade):
+    def crypto2crypto(self, trade: pd.Series) -> None:
         """
         Digest a crypto -> crypto transaction
         
@@ -127,22 +127,24 @@ class profitsCalculator:
         ----------
         trade: (pandas.dataFrame.row) 
         """
-        print("This is an annoying print to remind you to include fees and profits")
 
         if trade.type == "buy":
             crypto_bought = trade.pair[:4]
             crypto_sold = trade.pair[4:]
-            sold_amount = trade.cost
             bought_amount = trade.vol
+            sold_amount = trade.cost + trade.fee
+            fee = trade.fee / trade.price
         else:
             crypto_bought = trade.pair[4:]
             crypto_sold = trade.pair[:4]
+            bought_amount = trade.cost - trade.fee
             sold_amount = trade.vol
-            bought_amount = trade.cost
+            fee = trade.fee
 
-        initial_cost_in_fiat = self._wallet.take(crypto_sold, sold_amount)
-        equivalent_price = D(str(initial_cost_in_fiat)) / D(str(bought_amount))
-        self._wallet.add(crypto_bought, bought_amount, equivalent_price)
+        initial_cost_in_fiat = self._wallet.take(crypto = crypto_sold, vol = sold_amount)
+        equivalent_price = initial_cost_in_fiat / bought_amount
+        fee_in_fiat = equivalent_price * fee 
+        self._wallet.add(crypto = crypto_bought, amount = bought_amount, price = equivalent_price, fee = fee_in_fiat)
 
     def pnl_summary(self):
         """

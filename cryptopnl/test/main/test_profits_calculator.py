@@ -87,9 +87,8 @@ def test_crypto2fiat(initial_price, expected_is_profit, profitsCalculator_fixtur
 
 def test_crypto2crypto_buy(profitsCalculator_fixture):
     """
-    Asserts crypto has been correctly moved from one place to the other
+    Assert crypto has been correctly moved from one place to the other
     For the time being, no profit is calculated. Crypto is bought as original price of the selling crypto
-    WARNING : Fees are yet not included TODO
     """
 
     trade = profitsCalculator_fixture._trades._trades.iloc[1]
@@ -105,16 +104,15 @@ def test_crypto2crypto_buy(profitsCalculator_fixture):
 
     profitsCalculator_fixture.crypto2crypto(trade)
     
-    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol*trade.price
+    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol*trade.price - trade.fee
     assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
     assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol 
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.price
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.price + trade.fee / trade.vol * initial_price
 
 def test_crypto2crypto_sell(profitsCalculator_fixture):
     """
     Asserts crypto has been correctly moved from one place to the other
     For the time being, no profit is calculated. Crypto is bought as original price of the selling crypto
-    WARNING : Fees are yet not included TODO
     """
 
     trade = profitsCalculator_fixture._trades._trades.iloc[3]
@@ -133,8 +131,8 @@ def test_crypto2crypto_sell(profitsCalculator_fixture):
     
     assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol
     assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
-    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol * trade.price
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price / trade.price
+    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol * trade.price - trade.fee
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.vol / (trade.cost - trade.fee) 
     
 def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     """

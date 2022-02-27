@@ -61,7 +61,7 @@ class wallet:
         self.amounts[crypto] += amount   # TODO do it elsewhere
         return
           
-    def take(self, crypto:str, vol:Decimal):
+    def take(self, crypto:str, vol:Decimal) -> Decimal:
         """
         Takes an amount of crypto following the FIFO method 
 
@@ -112,7 +112,7 @@ class wallet:
             raise ValueError("Insufficient amount in the wallet")
         return initialCost
 
-    def getWalletCost(self):
+    def getWalletCost(self) -> Decimal:
         """
         Get wallet's cost 
 
@@ -122,7 +122,7 @@ class wallet:
         """
         return self._walletCost
 
-    def setWalletCost(self, cost:Decimal):
+    def setWalletCost(self, cost:Decimal) -> None:
         """
         Set current wallet's cost
 
@@ -132,7 +132,7 @@ class wallet:
         """
         self._walletCost = cost 
 
-    def updateCost(self, cost:Decimal, fee:Decimal = Decimal()):
+    def updateCost(self, cost:Decimal, fee:Decimal = Decimal()) -> None:
         """
         Update current wallet's cost with a new transaction
 
@@ -143,6 +143,8 @@ class wallet:
         """
         self._walletCost += cost + fee 
         
+    # TODO TODO TODO
+    # TODO create a function that calculates amounts
     def getCurrentWalletValue(self, time, prices):
         """
         Get wallet's current value

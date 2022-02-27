@@ -44,6 +44,9 @@ class Trades:
         self._trades = Trades.readKrakenCSV(trades_file)
         self._ledger = Trades.readKrakenCSV(ledger_file) if ledger_file else None
 
+        # TODO check balance check
+        # TODO create trades check : price*vol = cost
+
     def __iter__(self):
         """
         Iterator that loops on the trades
