@@ -5,8 +5,6 @@ import pytest
 
 from cryptopnl.main.trades import Trades
 
-#TODO when creating dataframe, use decimal automatically IMPORTANT
-
 def test_trades_init(mocker):
     """
     Test a trades object can be initialized
@@ -28,6 +26,7 @@ def test_trades_readKrakenCSV(tmpdir):
     Assert file exists, dataframe can be generated, specific columns are retrieved
     """
 
+    raise Exception("Use directly the testing files")
     some_trades = tmpdir.join("trades.csv")
     data = '"txid","ordertxid","pair","time","type","ordertype","price","cost","fee","vol","margin","misc","ledgers"\n"EIXO2E","OMS7LN","XXBTZEUR","2017-09-01 19:07:54.0965","buy","limit",1.00000,9.983,0.01500,0.00245000,0.00000,"","LOZGS7,LZORUL"'
     some_trades.write(data)

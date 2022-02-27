@@ -4,6 +4,7 @@ from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 from decimal import Decimal as D
 import pandas as pd
+from typing import Tuple
 
 class profitsCalculator:
     """
@@ -51,6 +52,9 @@ class profitsCalculator:
         self._wallet = wallet()
         self.fifo_gains = defaultdict(list)
         return 
+
+    def get_ledgers_from_trade(self, trade: pd.Series) -> Tuple[pd.Series, pd.Series]:
+        pass 
 
     def process_all_trades(self) -> None:
         """ Iterate over all trades. """

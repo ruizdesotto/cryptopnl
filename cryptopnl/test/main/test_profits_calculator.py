@@ -11,10 +11,11 @@ from cryptopnl.wallet.wallet import wallet
 @pytest.fixture
 def profitsCalculator_fixture(request):
     filename = request.module.__file__
-    test_dir, _ = os.path.split(filename)
+    file_dir, _ = os.path.split(filename)
+    test_dir, _ = os.path.split(file_dir)
 
-    if os.path.isdir(os.path.join(test_dir, "test_files")):
-        trades_file = os.path.join(test_dir, "test_files", "test_trades.csv")
+    if os.path.isdir(os.path.join(test_dir, "_test_files")):
+        trades_file = os.path.join(test_dir, "_test_files", "test_trades.csv")
         if os.path.exists(trades_file):
             return profitsCalculator(trades_file=trades_file) 
     
