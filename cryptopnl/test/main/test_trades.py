@@ -2,8 +2,35 @@ from decimal import Decimal as D
 import pandas as pd
 from datetime import datetime as dt
 import pytest
+import os
 
 from cryptopnl.main.trades import Trades
+
+@pytest.fixture
+def trades_csv(request):
+    filename = request.module.__file__
+    file_dir, _ = os.path.split(filename)
+    test_dir, _ = os.path.split(file_dir)
+
+    if os.path.isdir(os.path.join(test_dir, "_test_files")):
+        trades_file = os.path.join(test_dir, "_test_files", "test_trades.csv")
+        if os.path.exists(trades_file):
+            return trades_file
+    
+    raise FileNotFoundError("Test file not found")
+
+@pytest.fixture
+def ledger_csv(request):
+    filename = request.module.__file__
+    file_dir, _ = os.path.split(filename)
+    test_dir, _ = os.path.split(file_dir)
+
+    if os.path.isdir(os.path.join(test_dir, "_test_files")):
+        ledger_file = os.path.join(test_dir, "_test_files", "test_ledger.csv")
+        if os.path.exists(ledger_file):
+            return ledger_file 
+    
+    raise FileNotFoundError("Test file not found")
 
 def test_trades_init(mocker):
     """
@@ -21,19 +48,31 @@ def test_trades_init(mocker):
     assert isinstance(trades_no_ledger._trades, pd.DataFrame)
     assert trades_no_ledger._ledger is None
 
-def test_trades_readKrakenCSV(tmpdir):
+def test_trades_readKrakenCSV_trades(trades_csv):
     """
     Assert file exists, dataframe can be generated, specific columns are retrieved
     """
 
-    raise Exception("Use directly the testing files")
-    some_trades = tmpdir.join("trades.csv")
-    data = '"txid","ordertxid","pair","time","type","ordertype","price","cost","fee","vol","margin","misc","ledgers"\n"EIXO2E","OMS7LN","XXBTZEUR","2017-09-01 19:07:54.0965","buy","limit",1.00000,9.983,0.01500,0.00245000,0.00000,"","LOZGS7,LZORUL"'
-    some_trades.write(data)
-    trades = Trades.readKrakenCSV(some_trades)
+    trades = Trades.readKrakenCSV(trades_csv)
+
     assert isinstance(trades, pd.DataFrame)
     assert Trades.TIME_COL in trades
     assert isinstance(trades[Trades.TIME_COL].iloc[0], dt)
+    assert Trades.COST_COL in trades
+    assert isinstance(trades[Trades.COST_COL].iloc[0], D)
+
+def test_trades_readKrakenCSV_ledger(ledger_csv):
+    """
+    Assert file exists, dataframe can be generated, specific columns are retrieved
+    """
+
+    ledger = Trades.readKrakenCSV(ledger_csv)
+
+    assert isinstance(ledger, pd.DataFrame)
+    assert Trades.TIME_COL in ledger 
+    assert isinstance(ledger[Trades.TIME_COL].iloc[0], dt)
+    assert Trades.BALANCE_COL in ledger 
+    assert isinstance(ledger[Trades.BALANCE_COL].iloc[0], D)
 
 def test_trades_iter(mocker):
     """
@@ -48,6 +87,8 @@ def test_trades_iter(mocker):
         assert isinstance(d, pd.Series) 
         assert d["c0"] is not None
         assert d["c1"] is not None
+
+# TODO : use fixture to avoid boilerplate code
 @pytest.mark.parametrize("data_input, check", 
     ([
         (pd.DataFrame([

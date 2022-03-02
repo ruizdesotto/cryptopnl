@@ -54,7 +54,12 @@ class profitsCalculator:
         return 
 
     def get_ledgers_from_trade(self, trade: pd.Series) -> Tuple[pd.Series, pd.Series]:
-        pass 
+        indices = trade[Trades.LEDGER_COL].split(",")
+        l = self._trades._ledger
+        return (
+            l[l[Trades.TXID_COL] == indices[1]].iloc[0], 
+            l[l[Trades.TXID_COL] == indices[0]].iloc[0]
+                )
 
     def process_all_trades(self) -> None:
         """ Iterate over all trades. """

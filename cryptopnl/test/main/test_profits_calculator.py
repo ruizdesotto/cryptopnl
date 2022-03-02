@@ -16,8 +16,9 @@ def profitsCalculator_fixture(request):
 
     if os.path.isdir(os.path.join(test_dir, "_test_files")):
         trades_file = os.path.join(test_dir, "_test_files", "test_trades.csv")
-        if os.path.exists(trades_file):
-            return profitsCalculator(trades_file=trades_file) 
+        ledger_file = os.path.join(test_dir, "_test_files", "test_ledger.csv")
+        if os.path.exists(trades_file) and os.path.exists(trades_file):
+            return profitsCalculator(trades_file=trades_file, ledger_file=ledger_file) 
     
     raise FileNotFoundError("Test files not found")
     
@@ -135,6 +136,17 @@ def test_crypto2crypto_sell(profitsCalculator_fixture):
     assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol * trade.price - trade.fee
     assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.vol / (trade.cost - trade.fee) 
     
+def test_get_ledgers_from_trade(profitsCalculator_fixture):
+    "Asert the correct lines of the ledger are found"
+
+    trade = profitsCalculator_fixture._trades._trades.iloc[0]
+    l1_expected = profitsCalculator_fixture._trades._ledger.iloc[2]
+    l2_expected = profitsCalculator_fixture._trades._ledger.iloc[3]
+
+    l1, l2 = profitsCalculator_fixture.get_ledgers_from_trade(trade)
+    assert str(l1) == str(l1_expected)
+    assert str(l2) == str(l2_expected)
+
 def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     """
     Asserts process_trade function calls appropriate function with appropriate trade

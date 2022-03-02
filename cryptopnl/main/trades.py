@@ -33,6 +33,7 @@ class Trades:
     ASSET_COL = "asset"
     AMOUNT_COL = "amount"
     BALANCE_COL ="balance"
+    LEDGER_COL = "ledgers"
 
     def __init__(self, trades_file, ledger_file = None):
         """
@@ -86,7 +87,7 @@ class Trades:
         """
         df = pd.read_csv(file)
         df[Trades.TIME_COL] = pd.to_datetime(df[Trades.TIME_COL])
-        for c in (Trades.AMOUNT_COL, Trades.FEE_COL, Trades.COST_COL, Trades.PRICE_COL, Trades.VOL_COL, Trades.AMOUNT_COL):
+        for c in (Trades.AMOUNT_COL, Trades.FEE_COL, Trades.COST_COL, Trades.PRICE_COL, Trades.VOL_COL, Trades.AMOUNT_COL, Trades.BALANCE_COL):
             try: df[c] = df[c].apply(str).apply(Decimal)
             except: pass
         return df
