@@ -139,14 +139,43 @@ def test_crypto2crypto_sell(profitsCalculator_fixture):
 def test_get_ledgers_from_trade(profitsCalculator_fixture):
     "Asert the correct lines of the ledger are found"
 
+    # First trade
     trade = profitsCalculator_fixture._trades._trades.iloc[0]
-    l1_expected = profitsCalculator_fixture._trades._ledger.iloc[2]
-    l2_expected = profitsCalculator_fixture._trades._ledger.iloc[3]
+    l_ining_expected = profitsCalculator_fixture._trades._ledger.iloc[2]
+    l_outing_expected = profitsCalculator_fixture._trades._ledger.iloc[3]
 
-    l1, l2 = profitsCalculator_fixture.get_ledgers_from_trade(trade)
-    assert str(l1) == str(l1_expected)
-    assert str(l2) == str(l2_expected)
+    l_ining, l_outing = profitsCalculator_fixture.get_ledgers_from_trade(trade)
+    assert str(l_ining) == str(l_ining_expected)
+    assert str(l_outing) == str(l_outing_expected)
 
+    # Second trade
+    trade = profitsCalculator_fixture._trades._trades.iloc[2]
+    l_ining_expected = profitsCalculator_fixture._trades._ledger.iloc[7]
+    l_outing_expected = profitsCalculator_fixture._trades._ledger.iloc[6]
+
+    l_ining, l_outing = profitsCalculator_fixture.get_ledgers_from_trade(trade)
+    assert str(l_ining) == str(l_ining_expected)
+    assert str(l_outing) == str(l_outing_expected)
+
+def test_fiat2crypto_from_ledger(profitsCalculator_fixture):
+    """
+    Asserts crypto has been bought, stored and cost is updated 
+    """
+
+    trade = profitsCalculator_fixture._trades._trades.iloc[0]
+    crypto = profitsCalculator_fixture._trades._ledger.iloc[2]
+    fiat = profitsCalculator_fixture._trades._ledger.iloc[3]
+    wallet = profitsCalculator_fixture._wallet
+    initial_cost = 10
+    crypto_name = crypto.asset
+
+    wallet.setWalletCost(initial_cost)
+    profitsCalculator_fixture.fiat2crypto_from_ledger(trade, crypto = crypto, fiat = fiat)
+
+    assert wallet._walletCost == initial_cost - fiat.amount + fiat.fee
+    assert wallet.wallet[crypto_name][0][wallet.VOL] == crypto.amount 
+    assert wallet.wallet[crypto_name][0][wallet.PRICE] == - fiat.amount / crypto.amount 
+     
 def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     """
     Asserts process_trade function calls appropriate function with appropriate trade
@@ -155,6 +184,7 @@ def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     mock_f2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.fiat2crypto", return_value=True)
     mock_c2f = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2fiat", return_value=True)
     mock_c2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2crypto", return_value=True)
+    profitsCalculator_fixture.use_ledger_4_calc = False
 
     t0 = profitsCalculator_fixture._trades._trades.iloc[0]
     profitsCalculator_fixture.process_trade(t0)

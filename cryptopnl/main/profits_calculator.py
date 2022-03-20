@@ -2,7 +2,6 @@ import os
 from collections import defaultdict
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
-from decimal import Decimal as D
 import pandas as pd
 from typing import Tuple
 
@@ -48,18 +47,31 @@ class profitsCalculator:
         if not os.path.exists(trades_file): raise FileNotFoundError
         if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
 
+        self.use_ledger_4_calc = True
         self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
         self._wallet = wallet()
         self.fifo_gains = defaultdict(list)
         return 
 
     def get_ledgers_from_trade(self, trade: pd.Series) -> Tuple[pd.Series, pd.Series]:
+        """ 
+        Returns ledger's ids from a trade.
+        
+        Parameters
+        ----------
+        trade (pd.Series) : trade instance 
+        
+        Returns
+        -------
+        ledger (str, str) : tupple with the ining and outing amount
+        """
         indices = trade[Trades.LEDGER_COL].split(",")
         l = self._trades._ledger
-        return (
-            l[l[Trades.TXID_COL] == indices[1]].iloc[0], 
-            l[l[Trades.TXID_COL] == indices[0]].iloc[0]
-                )
+        l_id_1 = l[l[Trades.TXID_COL] == indices[0]].iloc[0]
+        l_id_2 = l[l[Trades.TXID_COL] == indices[1]].iloc[0]
+
+        if l_id_1[Trades.AMOUNT_COL] > 0: return (l_id_1, l_id_2)
+        else: return (l_id_2, l_id_1)
 
     def process_all_trades(self) -> None:
         """ Iterate over all trades. """
@@ -78,8 +90,30 @@ class profitsCalculator:
         trade: (pandas.dataFrame.row) 
         """
 
+        if self.use_ledger_4_calc:
+            self.process_trade_from_ledger(trade)
+            return
+
         if trade.pair.endswith("EUR") and trade.type == "buy":
             self.fiat2crypto(trade)
+        elif trade.pair.endswith("EUR") and trade.type == "sell":
+            self.crypto2fiat(trade)
+        else:
+            self.crypto2crypto(trade)
+        return 
+
+    def process_trade_from_ledger(self, trade: pd.Series) -> None:
+        """
+        Check type of trade and uses ledger for processing it.
+        
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+        """
+
+        id_ining, id_outing = self.get_ledgers_from_trade(trade)  
+        if trade.pair.endswith("EUR") and trade.type == "buy":
+            self.fiat2crypto_from_ledger(trade, crypto = id_ining, fiat = id_outing)
         elif trade.pair.endswith("EUR") and trade.type == "sell":
             self.crypto2fiat(trade)
         else:
@@ -96,9 +130,25 @@ class profitsCalculator:
         ----------
         trade: (pandas.dataFrame.row) 
         """
-        crypto = trade.pair[:-4] # Likely to bug
-        self._wallet.add(crypto, amount = trade.vol, price = trade.price, fee = trade.fee)
+        crypto_name = trade.pair[:-4] # Likely to bug
+        self._wallet.add(crypto_name, amount = trade.vol, price = trade.price, fee = trade.fee)
         self._wallet.updateCost(cost = trade.cost, fee = trade.fee) # TODO redondant
+        return 
+
+    def fiat2crypto_from_ledger(self, trade: pd.Series, crypto: pd.Series, fiat: pd.Series) -> None:
+        """
+        Digest a fiat -> crypto transaction
+        
+        It adds the crypto amount to the wallet and updated the cost
+        
+        Parameters
+        ----------
+        trade: (pandas.dataFrame.row) 
+        """
+        assert trade.vol == crypto.amount
+        assert trade.price == - fiat.amount / crypto.amount
+        self._wallet.add(crypto.asset, amount = crypto.amount, price = trade.price, fee = fiat.fee)
+        self._wallet.updateCost(cost = - fiat.amount, fee = fiat.fee) # TODO redondant
         return 
 
     def crypto2fiat(self, trade: pd.Series) -> None:
