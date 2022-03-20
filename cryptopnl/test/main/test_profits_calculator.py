@@ -162,7 +162,6 @@ def test_fiat2crypto_from_ledger(profitsCalculator_fixture):
     Asserts crypto has been bought, stored and cost is updated 
     """
 
-    trade = profitsCalculator_fixture._trades._trades.iloc[0]
     crypto = profitsCalculator_fixture._trades._ledger.iloc[2]
     fiat = profitsCalculator_fixture._trades._ledger.iloc[3]
     wallet = profitsCalculator_fixture._wallet
@@ -170,12 +169,36 @@ def test_fiat2crypto_from_ledger(profitsCalculator_fixture):
     crypto_name = crypto.asset
 
     wallet.setWalletCost(initial_cost)
-    profitsCalculator_fixture.fiat2crypto_from_ledger(trade, crypto = crypto, fiat = fiat)
+    profitsCalculator_fixture.fiat2crypto_from_ledger(crypto = crypto, fiat = fiat)
 
     assert wallet._walletCost == initial_cost - fiat.amount + fiat.fee
     assert wallet.wallet[crypto_name][0][wallet.VOL] == crypto.amount 
     assert wallet.wallet[crypto_name][0][wallet.PRICE] == - fiat.amount / crypto.amount 
      
+@pytest.mark.parametrize("initial_price, expected_is_profit", [(D(10), True), (D(60000), False)])
+def test_crypto2fiat_from_ledger(initial_price, expected_is_profit, profitsCalculator_fixture):
+    """
+    Asserts correct profit is calculated. Need to prefill the wallet
+    """
+
+    crypto = profitsCalculator_fixture._trades._ledger.iloc[6]
+    fiat = profitsCalculator_fixture._trades._ledger.iloc[7]
+    wallet = profitsCalculator_fixture._wallet
+
+    initial_amount = 2*(- crypto.amount)
+    wallet.add(crypto.asset, initial_amount, initial_price)
+
+    is_profit = profitsCalculator_fixture.crypto2fiat_from_ledger(crypto = crypto, fiat = fiat)
+    
+    cash_in = fiat.amount - fiat.fee
+    initial_cost = initial_price * (- crypto.amount)
+    profit = cash_in - initial_cost
+
+    assert is_profit == expected_is_profit 
+    assert profitsCalculator_fixture.fifo_gains[crypto.time.year][0][1] == profit
+    assert wallet.wallet[crypto.asset][0][wallet.VOL] == initial_amount - (- crypto.amount)
+    assert wallet.wallet[crypto.asset][0][wallet.PRICE] == initial_price 
+
 def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     """
     Asserts process_trade function calls appropriate function with appropriate trade

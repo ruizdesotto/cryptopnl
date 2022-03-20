@@ -105,6 +105,7 @@ class profitsCalculator:
     def process_trade_from_ledger(self, trade: pd.Series) -> None:
         """
         Check type of trade and uses ledger for processing it.
+        # TODO to test
         
         Parameters
         ----------
@@ -113,9 +114,15 @@ class profitsCalculator:
 
         id_ining, id_outing = self.get_ledgers_from_trade(trade)  
         if trade.pair.endswith("EUR") and trade.type == "buy":
-            self.fiat2crypto_from_ledger(trade, crypto = id_ining, fiat = id_outing)
+            # TODO encapsulate in function
+            assert trade.vol == id_ining.amount
+            assert trade.price == - id_outing.amount / id_ining.amount
+            self.fiat2crypto_from_ledger(crypto = id_ining, fiat = id_outing)
         elif trade.pair.endswith("EUR") and trade.type == "sell":
-            self.crypto2fiat(trade)
+            # TODO encapsulate in function
+            assert trade.vol == - id_outing.amount
+            assert trade.price == - id_ining.amount / id_outing.amount
+            self.crypto2fiat_from_ledger(crypto = id_outing, fiat = id_ining)
         else:
             self.crypto2crypto(trade)
         return 
@@ -135,20 +142,20 @@ class profitsCalculator:
         self._wallet.updateCost(cost = trade.cost, fee = trade.fee) # TODO redondant
         return 
 
-    def fiat2crypto_from_ledger(self, trade: pd.Series, crypto: pd.Series, fiat: pd.Series) -> None:
+    def fiat2crypto_from_ledger(self, crypto: pd.Series, fiat: pd.Series) -> None:
         """
-        Digest a fiat -> crypto transaction
+        Digest a fiat -> crypto transaction using the ledger
         
         It adds the crypto amount to the wallet and updated the cost
         
         Parameters
         ----------
-        trade: (pandas.dataFrame.row) 
+        crypto: (pandas.dataFrame.row) 
+        fiat: (pandas.dataFrame.row) 
         """
-        assert trade.vol == crypto.amount
-        assert trade.price == - fiat.amount / crypto.amount
-        self._wallet.add(crypto.asset, amount = crypto.amount, price = trade.price, fee = fiat.fee)
-        self._wallet.updateCost(cost = - fiat.amount, fee = fiat.fee) # TODO redondant
+        price = - fiat.amount / crypto.amount
+        self._wallet.add(crypto.asset, amount = crypto.amount, price = price, fee = fiat.fee)
+        self._wallet.updateCost(cost = - fiat.amount, fee = fiat.fee) 
         return 
 
     def crypto2fiat(self, trade: pd.Series) -> None:
@@ -173,6 +180,30 @@ class profitsCalculator:
         cash_in = trade.cost - trade.fee
         profit = cash_in - initial_cost
         self.fifo_gains[trade.time.year].append((trade.time, profit))
+        return profit > 0
+
+    def crypto2fiat_from_ledger(self, crypto: pd.Series, fiat: pd.Series) -> None:
+        """
+        Digest a crypto -> fiat transaction using ledger info
+        
+        It takes crypto from the wallet and updates the current cost and profit
+        FIFO and later on, average cost method
+        
+        Parameters
+        ----------
+        crypto: (pandas.dataFrame.row) 
+        fiat: (pandas.dataFrame.row) 
+
+        Returns
+        -------
+        profit: (boolean) True / False for profit / loss
+        # TODO : if ledger fees can be in both sides (in EUR and in crypto)
+        """
+        crypto_name = crypto.asset 
+        initial_cost = self._wallet.take(crypto = crypto_name, vol = - crypto.amount)
+        cash_in = fiat.amount - fiat.fee 
+        profit = cash_in - initial_cost
+        self.fifo_gains[crypto.time.year].append((crypto.time, profit))
         return profit > 0
 
     def crypto2crypto(self, trade: pd.Series) -> None:
