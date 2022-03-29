@@ -4,7 +4,7 @@ import os
 import pytest
 import re
 from collections import defaultdict
-from cryptopnl.main.profits_calculator import profitsCalculator
+from cryptopnl.main.fifo_with_trades import profitsCalculator
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 
@@ -204,9 +204,9 @@ def test_profitsCalculator_process_trade(profitsCalculator_fixture, mocker):
     Asserts process_trade function calls appropriate function with appropriate trade
     """
 
-    mock_f2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.fiat2crypto", return_value=True)
-    mock_c2f = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2fiat", return_value=True)
-    mock_c2c = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.crypto2crypto", return_value=True)
+    mock_f2c = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.fiat2crypto", return_value=True)
+    mock_c2f = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.crypto2fiat", return_value=True)
+    mock_c2c = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.crypto2crypto", return_value=True)
     profitsCalculator_fixture.use_ledger_4_calc = False
 
     t0 = profitsCalculator_fixture._trades._trades.iloc[0]
@@ -226,7 +226,7 @@ def test_profitsCalculator_process_all_trades(profitsCalculator_fixture, mocker)
     Asserts all trades are processed  
     """
 
-    mock_process = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.process_trade", return_value=True)
+    mock_process = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.process_trade", return_value=True)
 
     profitsCalculator_fixture.process_all_trades()
     t0 = profitsCalculator_fixture._trades._trades.iloc[0]
@@ -262,8 +262,8 @@ def test_profitsCalculator_go(profitsCalculator_fixture, mocker):
     Assert the functions are called
     """
 
-    mock_process = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.process_all_trades", return_value=True)
-    mock_summary = mocker.patch("cryptopnl.main.profits_calculator.profitsCalculator.pnl_summary", return_value=True)
+    mock_process = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.process_all_trades", return_value=True)
+    mock_summary = mocker.patch("cryptopnl.main.fifo_with_trades.profitsCalculator.pnl_summary", return_value=True)
 
     profitsCalculator_fixture.go()
     mock_process.assert_called_once_with()
