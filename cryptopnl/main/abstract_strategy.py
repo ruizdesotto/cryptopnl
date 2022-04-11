@@ -4,7 +4,6 @@ from collections import defaultdict
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 import pandas as pd
-from typing import Tuple
 
 class abstract_strategy(metaclass = abc.ABCMeta):
     """
