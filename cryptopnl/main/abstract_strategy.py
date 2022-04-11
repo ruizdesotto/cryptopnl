@@ -1,14 +1,14 @@
+import abc
 import os
 from collections import defaultdict
-from cryptopnl.main.abstract_strategy import abstract_strategy
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 import pandas as pd
 from typing import Tuple
 
-class fifo_with_trades(abstract_strategy):
+class abstract_strategy(metaclass = abc.ABCMeta):
     """
-    Profits N Losses Calculator.
+    Profits N Losses Calculator (not literally abstract).
     
     Loads a Trades object and a Wallet object to track the operations.
     
@@ -20,34 +20,47 @@ class fifo_with_trades(abstract_strategy):
 
     Methods:
     --------
+    process_all_trades()
+        Loop over all the trades to calculate all the profits / losses
     process_trade()
         Process one trade identifying the type : crypto/fiat or vice versa
-    fiat2crypto()
+    fiat2crypto() : abstract
         Trade involving buying cryptocurrency
-    crypto2fiat()
+    crypto2fiat() : abstract
         Trade involving selling cryptocurrency
-    crypto2crypto()
+    crypto2crypto() : abstract
         Trade involving the exchange of two cryptocurrencies
     pnl_summary()
         Detailed information over the profits and losses
     go()
         Process and generates a summary of earning
     """
-    def __init__(self, trades_file:str) -> None:  
+
+    def __init__(self, trades_file:str, ledger_file:str = None) -> None:  
         """ 
         Initialize an instance with a Trades object and a Wallet
 
         Parameters
         ----------
         trades_file (str) : location of a file with the trades
+        ledger_file (str) . (optional) location of a file with the ledger 
         """
         if not os.path.exists(trades_file): raise FileNotFoundError
+        if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
 
-        self._trades = Trades(trades_file=trades_file)
+        self.use_ledger_4_calc = True
+        self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
         self._wallet = wallet()
         self.fifo_gains = defaultdict(list)
         return 
 
+    def process_all_trades(self) -> None:
+        """ Iterate over all trades. """
+        for _, trade in self._trades:
+            self.process_trade(trade)
+        return 
+
+    @abc.abstractmethod
     def process_trade(self, trade: pd.Series) -> None:
         """
         Check type of trade 
@@ -57,14 +70,9 @@ class fifo_with_trades(abstract_strategy):
         trade: (pandas.dataFrame.row) 
         """
 
-        if trade.pair.endswith("EUR") and trade.type == "buy":
-            self.fiat2crypto(trade)
-        elif trade.pair.endswith("EUR") and trade.type == "sell":
-            self.crypto2fiat(trade)
-        else:
-            self.crypto2crypto(trade)
-        return 
+        pass
 
+    @abc.abstractmethod
     def fiat2crypto(self, trade: pd.Series) -> None:
         """
         Digest a fiat -> crypto transaction
@@ -75,11 +83,9 @@ class fifo_with_trades(abstract_strategy):
         ----------
         trade: (pandas.dataFrame.row) 
         """
-        crypto_name = trade.pair[:-4] # Likely to bug
-        self._wallet.add(crypto_name, amount = trade.vol, price = trade.price, fee = trade.fee)
-        self._wallet.updateCost(cost = trade.cost, fee = trade.fee) # TODO redondant
-        return 
+        pass
 
+    @abc.abstractmethod
     def crypto2fiat(self, trade: pd.Series) -> None:
         """
         Digest a crypto -> fiat transaction
@@ -96,14 +102,9 @@ class fifo_with_trades(abstract_strategy):
         profit: (boolean) True / False for profit / loss
         # TODO : if ledger fees can be in both sides (in EUR and in crypto)
         """
-        crypto = trade.pair[:-4]
-        initial_cost = self._wallet.take(crypto = crypto, vol = trade.vol)
-        #cash_in = trade.price * trade.vol - trade.fee # TODO redondant cost
-        cash_in = trade.cost - trade.fee
-        profit = cash_in - initial_cost
-        self.fifo_gains[trade.time.year].append((trade.time, profit))
-        return profit > 0
+        pass
 
+    @abc.abstractmethod
     def crypto2crypto(self, trade: pd.Series) -> None:
         """
         Digest a crypto -> crypto transaction
@@ -116,20 +117,20 @@ class fifo_with_trades(abstract_strategy):
         trade: (pandas.dataFrame.row) 
         """
 
-        if trade.type == "buy":
-            crypto_bought = trade.pair[:4]
-            crypto_sold = trade.pair[4:]
-            bought_amount = trade.vol
-            sold_amount = trade.cost + trade.fee
-            fee = trade.fee / trade.price
-        else:
-            crypto_bought = trade.pair[4:]
-            crypto_sold = trade.pair[:4]
-            bought_amount = trade.cost - trade.fee
-            sold_amount = trade.vol
-            fee = trade.fee
+        pass
+    
+    def pnl_summary(self):
+        """
+        Calculate a summary of all the profits and print it
 
-        initial_cost_in_fiat = self._wallet.take(crypto = crypto_sold, vol = sold_amount)
-        equivalent_price = initial_cost_in_fiat / bought_amount
-        fee_in_fiat = equivalent_price * fee 
-        self._wallet.add(crypto = crypto_bought, amount = bought_amount, price = equivalent_price, fee = fee_in_fiat)
+        Return a simplified dictionary 
+        """
+        summary = {year: sum(p for (_, p) in profits) 
+                            for (year, profits) in self.fifo_gains.items()} 
+        print("\n".join(f"{year}: {profit}" for year, profit in summary.items()))
+        return summary
+        
+    def go(self):
+        self.process_all_trades()
+        self.pnl_summary()
+        return 0
