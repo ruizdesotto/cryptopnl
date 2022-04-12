@@ -7,6 +7,16 @@ from cryptopnl.main.abstract_strategy import abstract_strategy
 from cryptopnl.main.trades import Trades
 from cryptopnl.wallet.wallet import wallet
 
+class not_abstract_strategy(abstract_strategy):
+    def process_trade(self) -> None:
+        pass
+    def fiat2crypto(self) -> None:
+        pass 
+    def crypto2fiat(self) -> None:
+        pass
+    def crypto2crypto(self) -> None:
+        pass
+
 @pytest.fixture
 def profitsCalculator_fixture(request):
     filename = request.module.__file__
@@ -17,7 +27,7 @@ def profitsCalculator_fixture(request):
         trades_file = os.path.join(test_dir, "_test_files", "test_trades.csv")
         ledger_file = os.path.join(test_dir, "_test_files", "test_ledger.csv")
         if os.path.exists(trades_file) and os.path.exists(trades_file):
-            return abstract_strategy(trades_file=trades_file, ledger_file=ledger_file) 
+            return not_abstract_strategy(trades_file=trades_file, ledger_file=ledger_file) 
     
     raise FileNotFoundError("Test files not found")
     
@@ -30,7 +40,7 @@ def test_profitsCalculator_init(tmpdir, mocker):
     trades = tmpdir.join("trades.csv")
     ledger = tmpdir.join("ledger.csv")
     with pytest.raises(FileNotFoundError):
-        abstract_strategy(trades_file = trades)
+        not_abstract_strategy(trades_file = trades)
     trades.write("")
     with pytest.raises(FileNotFoundError):
         abstract_strategy(trades_file = trades, ledger_file=ledger)
@@ -43,7 +53,7 @@ def test_profitsCalculator_init(tmpdir, mocker):
     assert type(profits.fifo_gains) == defaultdict 
     assert type(profits.fifo_gains.default_factory()) == list
 
-    profits_without_ledger = profitsCalculator(trades_file = trades)
+    profits_without_ledger = not_abstract_strategy(trades_file = trades)
     assert type(profits_without_ledger._trades) == Trades
     return
 
