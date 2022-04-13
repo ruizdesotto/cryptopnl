@@ -1,15 +1,17 @@
 import os
 from collections import defaultdict
 from cryptopnl.main.trades import Trades
+from cryptopnl.main.abstract_strategy import abstract_strategy
 from cryptopnl.wallet.wallet import wallet
 import pandas as pd
 from typing import Tuple
 
-class profitsCalculator:
+class fifo_with_ledger(abstract_strategy):
     """
     Profits N Losses Calculator.
     
     Loads a Trades object and a Wallet object to track the operations.
+    The Trades object includes a ledger and it is used for the calculations.
     
     Attributes:
     ----------
@@ -35,7 +37,7 @@ class profitsCalculator:
         Process and generates a summary of earning
     """
 
-    def __init__(self, trades_file:str, ledger_file:str = None) -> None:  
+    def __init__(self, trades_file:str, ledger_file:str) -> None:  
         """ 
         Initialize an instance with a Trades object and a Wallet
 
@@ -45,7 +47,7 @@ class profitsCalculator:
         ledger_file (str) . (optional) location of a file with the ledger 
         """
         if not os.path.exists(trades_file): raise FileNotFoundError
-        if ledger_file and not os.path.exists(ledger_file): raise FileNotFoundError
+        if not os.path.exists(ledger_file): raise FileNotFoundError
 
         self.use_ledger_4_calc = True
         self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
