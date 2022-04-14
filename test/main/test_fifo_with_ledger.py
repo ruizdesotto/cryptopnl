@@ -80,7 +80,7 @@ def test_fiat2crypto(fifo_with_ledger_fixture):
     crypto_name = crypto.asset
 
     wallet.setWalletCost(initial_cost)
-    fifo_with_ledger_fixture.fiat2crypto_from_ledger(crypto = crypto, fiat = fiat)
+    fifo_with_ledger_fixture.fiat2crypto(crypto = crypto, fiat = fiat)
 
     assert wallet._walletCost == initial_cost - fiat.amount + fiat.fee
     assert wallet.wallet[crypto_name][0][wallet.VOL] == crypto.amount 
@@ -99,7 +99,7 @@ def test_crypto2fiat(initial_price, expected_is_profit, fifo_with_ledger_fixture
     initial_amount = 2*(- crypto.amount)
     wallet.add(crypto.asset, initial_amount, initial_price)
 
-    is_profit = fifo_with_ledger_fixture.crypto2fiat_from_ledger(crypto = crypto, fiat = fiat)
+    is_profit = fifo_with_ledger_fixture.crypto2fiat(crypto = crypto, fiat = fiat)
     
     cash_in = fiat.amount - fiat.fee
     initial_cost = initial_price * (- crypto.amount)
@@ -110,73 +110,61 @@ def test_crypto2fiat(initial_price, expected_is_profit, fifo_with_ledger_fixture
     assert wallet.wallet[crypto.asset][0][wallet.VOL] == initial_amount - (- crypto.amount)
     assert wallet.wallet[crypto.asset][0][wallet.PRICE] == initial_price 
 
-def test_crypto2crypto_buy(fifo_with_ledger_fixture):
+@pytest.mark.parametrize("index_in, index_out", [(4, 5), (9, 8)])
+def test_crypto2crypto(index_in, index_out, fifo_with_ledger_fixture):
     """
     Assert crypto has been correctly moved from one place to the other
     For the time being, no profit is calculated. Crypto is bought as original price of the selling crypto
     """
 
-    trade = fifo_with_ledger_fixture._trades._trades.iloc[1]
+    crypto_in = fifo_with_ledger_fixture._trades._ledger.iloc[index_in]
+    crypto_out = fifo_with_ledger_fixture._trades._ledger.iloc[index_out]
     wallet = fifo_with_ledger_fixture._wallet
 
-    bought_crypto = trade.pair[:4] if trade.type == "buy" else trade.pair[4:]
-    sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
+    bought_crypto = crypto_in.asset
+    sold_crypto = crypto_out.asset
 
     # Wallet before the transaction
-    initial_amount = 2*trade.vol*trade.price  
+    initial_amount = -2*crypto_out.amount  
     initial_price = D(10) 
     wallet.add(sold_crypto, initial_amount, initial_price)
 
-    fifo_with_ledger_fixture.crypto2crypto(trade)
+    fifo_with_ledger_fixture.crypto2crypto(crypto_in, crypto_out)
     
-    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol*trade.price - trade.fee
+    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - abs(crypto_out.amount) - crypto_out.fee
     assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
-    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol 
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.price + trade.fee / trade.vol * initial_price
+    assert wallet.wallet[bought_crypto][0][wallet.VOL] == crypto_in.amount - crypto_in.fee
+    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == ( abs(crypto_out.amount) + crypto_out.fee ) / (crypto_in.amount - crypto_in.fee) * initial_price
 
-def test_crypto2crypto_sell(fifo_with_ledger_fixture):
-    """
-    Asserts crypto has been correctly moved from one place to the other
-    For the time being, no profit is calculated. Crypto is bought as original price of the selling crypto
-    """
-
-    trade = fifo_with_ledger_fixture._trades._trades.iloc[3]
-    wallet = fifo_with_ledger_fixture._wallet
-
-    bought_crypto = trade.pair[:4] if trade.type == "buy" else trade.pair[4:]
-    sold_crypto = trade.pair[4:] if trade.type == "buy" else trade.pair[:4]
-
-    # Wallet before the transaction
-    initial_amount = 2*trade.vol  
-    initial_price = D(10) 
-    wallet.add(sold_crypto, initial_amount, initial_price)
-    wallet.setWalletCost(initial_price * initial_amount)
-
-    fifo_with_ledger_fixture.crypto2crypto(trade)
-    
-    assert wallet.wallet[sold_crypto][0][wallet.VOL] == initial_amount - trade.vol
-    assert wallet.wallet[sold_crypto][0][wallet.PRICE] == initial_price 
-    assert wallet.wallet[bought_crypto][0][wallet.VOL] == trade.vol * trade.price - trade.fee
-    assert wallet.wallet[bought_crypto][0][wallet.PRICE] == initial_price * trade.vol / (trade.cost - trade.fee) 
-    
 def test_fifo_with_ledger_process_trade(fifo_with_ledger_fixture, mocker):
     """
     Asserts process_trade function calls appropriate function with appropriate trade
     """
 
-    mock_f2c = mocker.patch("cryptopnl.main.fifo_with_trades.fifo_with_ledger.fiat2crypto", return_value=True)
-    mock_c2f = mocker.patch("cryptopnl.main.fifo_with_trades.fifo_with_ledger.crypto2fiat", return_value=True)
-    mock_c2c = mocker.patch("cryptopnl.main.fifo_with_trades.fifo_with_ledger.crypto2crypto", return_value=True)
-    fifo_with_ledger_fixture.use_ledger_4_calc = False
+    mock_f2c = mocker.patch("cryptopnl.main.fifo_with_ledger.fifo_with_ledger.fiat2crypto", return_value=True)
+    mock_c2f = mocker.patch("cryptopnl.main.fifo_with_ledger.fifo_with_ledger.crypto2fiat", return_value=True)
+    mock_c2c = mocker.patch("cryptopnl.main.fifo_with_ledger.fifo_with_ledger.crypto2crypto", return_value=True)
 
     t0 = fifo_with_ledger_fixture._trades._trades.iloc[0]
+    fiat = fifo_with_ledger_fixture._trades._ledger.iloc[3]
+    crypto = fifo_with_ledger_fixture._trades._ledger.iloc[2]
     fifo_with_ledger_fixture.process_trade(t0)
-    mock_f2c.assert_called_once_with(t0)
+    mock_f2c.assert_called_once_with(fiat, crypto)
 
     t1 = fifo_with_ledger_fixture._trades._trades.iloc[1]
+    crypto_in = fifo_with_ledger_fixture._trades._ledger.iloc[4]
+    crypto_out = fifo_with_ledger_fixture._trades._ledger.iloc[5]
     fifo_with_ledger_fixture.process_trade(t1)
-    mock_c2c.assert_called_once_with(t1)
+    mock_c2c.assert_called_once_with(crypto_in, crypto_out)
 
     t2 = fifo_with_ledger_fixture._trades._trades.iloc[2]
+    fiat = fifo_with_ledger_fixture._trades._ledger.iloc[7]
+    crypto = fifo_with_ledger_fixture._trades._ledger.iloc[6]
     fifo_with_ledger_fixture.process_trade(t2)
-    mock_c2f.assert_called_once_with(t2)
+    mock_c2f.assert_called_once_with(crypto, fiat)
+
+    t3 = fifo_with_ledger_fixture._trades._trades.iloc[4]
+    crypto_in = fifo_with_ledger_fixture._trades._ledger.iloc[9]
+    crypto_out = fifo_with_ledger_fixture._trades._ledger.iloc[8]
+    fifo_with_ledger_fixture.process_trade(t3)
+    mock_c2c.assert_called_once_with(crypto_in, crypto_out)

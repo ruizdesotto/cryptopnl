@@ -49,7 +49,6 @@ class fifo_with_ledger(abstract_strategy):
         if not os.path.exists(trades_file): raise FileNotFoundError
         if not os.path.exists(ledger_file): raise FileNotFoundError
 
-        self.use_ledger_4_calc = True
         self._trades = Trades(trades_file=trades_file, ledger_file=ledger_file)
         self._wallet = wallet()
         self.fifo_gains = defaultdict(list)
@@ -75,36 +74,7 @@ class fifo_with_ledger(abstract_strategy):
         if l_id_1[Trades.AMOUNT_COL] > 0: return (l_id_1, l_id_2)
         else: return (l_id_2, l_id_1)
 
-    def process_all_trades(self) -> None:
-        """ Iterate over all trades. """
-        for _, trade in self._trades:
-            self.process_trade(trade)
-        return 
-
     def process_trade(self, trade: pd.Series) -> None:
-        """
-        Check type of trade 
-        
-        TODO : add ledger as an option
-        TODO : Warning does not check a trade falls within one of the three categories
-        Parameters
-        ----------
-        trade: (pandas.dataFrame.row) 
-        """
-
-        if self.use_ledger_4_calc:
-            self.process_trade_from_ledger(trade)
-            return
-
-        if trade.pair.endswith("EUR") and trade.type == "buy":
-            self.fiat2crypto(trade)
-        elif trade.pair.endswith("EUR") and trade.type == "sell":
-            self.crypto2fiat(trade)
-        else:
-            self.crypto2crypto(trade)
-        return 
-
-    def process_trade_from_ledger(self, trade: pd.Series) -> None:
         """
         Check type of trade and uses ledger for processing it.
         # TODO to test
@@ -119,32 +89,17 @@ class fifo_with_ledger(abstract_strategy):
             # TODO encapsulate in function
             assert trade.vol == id_ining.amount
             assert trade.price == - id_outing.amount / id_ining.amount
-            self.fiat2crypto_from_ledger(crypto = id_ining, fiat = id_outing)
+            self.fiat2crypto(crypto = id_ining, fiat = id_outing)
         elif trade.pair.endswith("EUR") and trade.type == "sell":
             # TODO encapsulate in function
             assert trade.vol == - id_outing.amount
             assert trade.price == - id_ining.amount / id_outing.amount
-            self.crypto2fiat_from_ledger(crypto = id_outing, fiat = id_ining)
+            self.crypto2fiat(crypto = id_outing, fiat = id_ining)
         else:
             self.crypto2crypto(trade)
         return 
 
-    def fiat2crypto(self, trade: pd.Series) -> None:
-        """
-        Digest a fiat -> crypto transaction
-        
-        It adds the crypto amount to the wallet and updated the cost
-        
-        Parameters
-        ----------
-        trade: (pandas.dataFrame.row) 
-        """
-        crypto_name = trade.pair[:-4] # Likely to bug
-        self._wallet.add(crypto_name, amount = trade.vol, price = trade.price, fee = trade.fee)
-        self._wallet.updateCost(cost = trade.cost, fee = trade.fee) # TODO redondant
-        return 
-
-    def fiat2crypto_from_ledger(self, crypto: pd.Series, fiat: pd.Series) -> None:
+    def fiat2crypto(self, crypto: pd.Series, fiat: pd.Series) -> None:
         """
         Digest a fiat -> crypto transaction using the ledger
         
@@ -160,31 +115,7 @@ class fifo_with_ledger(abstract_strategy):
         self._wallet.updateCost(cost = - fiat.amount, fee = fiat.fee) 
         return 
 
-    def crypto2fiat(self, trade: pd.Series) -> None:
-        """
-        Digest a crypto -> fiat transaction
-        
-        It takes crypto from the wallet and updates the current cost and profit
-        FIFO and later on, average cost method
-        
-        Parameters
-        ----------
-        trade: (pandas.dataFrame.row) 
-
-        Returns
-        -------
-        profit: (boolean) True / False for profit / loss
-        # TODO : if ledger fees can be in both sides (in EUR and in crypto)
-        """
-        crypto = trade.pair[:-4]
-        initial_cost = self._wallet.take(crypto = crypto, vol = trade.vol)
-        #cash_in = trade.price * trade.vol - trade.fee # TODO redondant cost
-        cash_in = trade.cost - trade.fee
-        profit = cash_in - initial_cost
-        self.fifo_gains[trade.time.year].append((trade.time, profit))
-        return profit > 0
-
-    def crypto2fiat_from_ledger(self, crypto: pd.Series, fiat: pd.Series) -> None:
+    def crypto2fiat(self, crypto: pd.Series, fiat: pd.Series) -> None:
         """
         Digest a crypto -> fiat transaction using ledger info
         
@@ -208,7 +139,7 @@ class fifo_with_ledger(abstract_strategy):
         self.fifo_gains[crypto.time.year].append((crypto.time, profit))
         return profit > 0
 
-    def crypto2crypto(self, trade: pd.Series) -> None:
+    def crypto2crypto(self, crypto_in: pd.Series, crypto_out: pd.Series) -> None:
         """
         Digest a crypto -> crypto transaction
         
@@ -219,37 +150,11 @@ class fifo_with_ledger(abstract_strategy):
         ----------
         trade: (pandas.dataFrame.row) 
         """
-
-        if trade.type == "buy":
-            crypto_bought = trade.pair[:4]
-            crypto_sold = trade.pair[4:]
-            bought_amount = trade.vol
-            sold_amount = trade.cost + trade.fee
-            fee = trade.fee / trade.price
-        else:
-            crypto_bought = trade.pair[4:]
-            crypto_sold = trade.pair[:4]
-            bought_amount = trade.cost - trade.fee
-            sold_amount = trade.vol
-            fee = trade.fee
+        crypto_bought = crypto_in.asset 
+        crypto_sold = crypto_out.asset 
+        bought_amount = crypto_in.amount - crypto_in.fee
+        sold_amount = -crypto_out.amount + crypto_out.fee 
 
         initial_cost_in_fiat = self._wallet.take(crypto = crypto_sold, vol = sold_amount)
         equivalent_price = initial_cost_in_fiat / bought_amount
-        fee_in_fiat = equivalent_price * fee 
-        self._wallet.add(crypto = crypto_bought, amount = bought_amount, price = equivalent_price, fee = fee_in_fiat)
-
-    def pnl_summary(self):
-        """
-        Calculate a summary of all the profits and print it
-
-        Return a simplified dictionary 
-        """
-        summary = {year: sum(p for (_, p) in profits) 
-                            for (year, profits) in self.fifo_gains.items()} 
-        print("\n".join(f"{year}: {profit}" for year, profit in summary.items()))
-        return summary
-        
-    def go(self):
-        self.process_all_trades()
-        self.pnl_summary()
-        return 0
+        self._wallet.add(crypto = crypto_bought, amount = bought_amount, price = equivalent_price)#TODO define this , fee = fee_in_fiat)
